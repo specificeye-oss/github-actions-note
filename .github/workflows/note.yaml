@@ -210,7 +210,7 @@ jobs:
           }
 
           const json = await res.json();
-          const text = json.content?.[0]?.text || '';
+          const text = (json.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
           fs.writeFileSync('article_raw.txt', text);
 
           let parsed;
