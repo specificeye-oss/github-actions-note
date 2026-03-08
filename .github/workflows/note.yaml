@@ -1,6 +1,8 @@
 name: Note Workflow
 
 on:
+  schedule:
+    - cron: '0 22 * * *'
   workflow_dispatch:
     inputs:
       theme:
