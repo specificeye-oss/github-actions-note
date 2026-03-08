@@ -264,7 +264,7 @@ jobs:
           const apiKey = process.env.TAVILY_API_KEY;
           const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
 
-          const query = `${article.title}\n\n${article.body.slice(0, 1200)}`;
+          const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
 
           const res = await fetch('https://api.tavily.com/search', {
             method: 'POST',
