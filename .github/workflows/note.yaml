@@ -383,7 +383,8 @@ jobs:
             console.log('title field not found');
           }
 
-          await page.keyboard.press('Tab');
+          await page.keyboard.type(data.title, { delay: 5 });
+
           await page.keyboard.type(data.body, { delay: 5 });
           await page.waitForTimeout(3000);
 
