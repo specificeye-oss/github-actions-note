@@ -321,7 +321,6 @@ jobs:
     env:
       NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
       FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
-      
       IS_PUBLIC: ${{ github.event.inputs.is_public }}
     steps:
       - name: Checkout
@@ -379,11 +378,38 @@ jobs:
               } catch {}
             }
           }
-       
 
-      await context.storageState({ path: statePath });
-      
+          if (!titleDone) {
+            console.log('title field not found');
+          }
+
+          await page.keyboard.type(data.title, { delay: 5 });
+
+          await page.keyboard.type(data.body, { delay: 5 });
+          await page.waitForTimeout(3000);
+
+          if (isPublic) {
+            const publishButton = page.getByRole('button', { name: /公開|publish/i });
+            if (await publishButton.count()) {
+              await publishButton.first().click();
+              await page.waitForTimeout(3000);
+            }
+          } else {
+            const saveButton = page.getByRole('button', { name: /下書き|保存|save/i });
+            if (await saveButton.count()) {
+              await saveButton.first().click();
+              await page.waitForTimeout(3000);
+            }
+          }
+
+          await context.storageState({ path: statePath });
           await browser.close();
           EOF
-          　　　　
 
+          node post.mjs
+
+      - name: Upload updated state
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-note-state
+          path: note-state.json
