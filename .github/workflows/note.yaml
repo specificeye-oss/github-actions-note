@@ -385,10 +385,5 @@ jobs:
       
           await browser.close();
           EOF
-          　　　　　　node post.mjs
+          　　　　
 
-      - name: Upload updated state
-        uses: actions/upload-artifact@v4
-        with:
-          name: updated-note-state
-          path: note-state.json
