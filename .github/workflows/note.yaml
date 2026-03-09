@@ -368,7 +368,7 @@ jobs:
 
           let titleDone = false;
           for (const sel of titleSelectors) {
-            const loc = page.locator('textarea[placeholder="記事タイトル"]').first();
+            const loc = page.locator(sel).first();
             if (await loc.count()) {
               try {
                 await loc.click();
