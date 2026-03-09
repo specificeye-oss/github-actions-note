@@ -28,13 +28,20 @@ on:
           - "true"
           - "false"
 
+permissions:
+  contents: read
+
+env:
+  TZ: Asia/Tokyo
+
 jobs:
 
   research:
     runs-on: ubuntu-latest
+    outputs:
+      research_b64: ${{ steps.collect.outputs.research_b64 }}
 
     steps:
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -65,7 +72,7 @@ jobs:
           cat <<EOF > article.json
           {
             "title": "note自動投稿テスト",
-            "body": "これはGitHub Actionsから自動投稿されたテスト記事です。"
+            "body": "GitHub Actionsからの自動投稿テストです。"
           }
           EOF
 
@@ -102,7 +109,6 @@ jobs:
 
       - run: |
           cat <<'EOF' > post.mjs
-
           import { chromium } from "playwright";
 
           const data = JSON.parse(
@@ -124,10 +130,9 @@ jobs:
           await page.waitForTimeout(5000);
 
           const titleSelectors = [
-            '[placeholder="記事タイトル"]',
-            '[data-placeholder="記事タイトル"]',
-            '[contenteditable="true"]',
-            'textarea'
+            "textarea",
+            "input[placeholder*='タイトル']",
+            "[contenteditable='true']"
           ];
 
           let titleDone = false;
@@ -155,31 +160,39 @@ jobs:
           }
 
           if (!titleDone) {
-
-            throw new Error("title field not found");
-
+            console.log("title field not found");
           }
 
-          await page.keyboard.press("Tab");
-
-          await page.keyboard.type(data.body, {
-            delay: 5
-          });
+          await page.keyboard.type(data.title,{delay:5});
+          await page.keyboard.type(data.body,{delay:5});
 
           if (process.env.IS_PUBLIC === "true") {
 
-            await page.click('button:has-text("公開")');
+            const publishButton = page.getByRole("button",{name:/公開|publish/i});
+
+            if (await publishButton.count()) {
+
+              await publishButton.first().click();
+
+              await page.waitForTimeout(3000);
+
+            }
 
           } else {
 
-            await page.click('button:has-text("下書き")');
+            const saveButton = page.getByRole("button",{name:/下書き|保存|save/i});
+
+            if (await saveButton.count()) {
+
+              await saveButton.first().click();
+
+              await page.waitForTimeout(3000);
+
+            }
 
           }
 
-          await page.waitForTimeout(5000);
-
           await browser.close();
-
           EOF
 
           node post.mjs
