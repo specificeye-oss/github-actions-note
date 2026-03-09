@@ -379,36 +379,13 @@ jobs:
               } catch {}
             }
           }
-          const data = JSON.parse(process.env.WRITE_JSON);
-      const titleField = page.locator('textarea').first();
-      await titleField.click();
-      await titleField.fill(data.title);
-      await page.waitForTimeout(1000);
-
-      await page.keyboard.press('Tab');
-      await page.keyboard.type(data.body, { delay: 5 });
-      await page.waitForTimeout(3000);
-
-      if (isPublic) {
-        const publishButton = page.getByRole('button', { name: /公開|publish/i });
-        if (await publishButton.count()) {
-          await publishButton.first().click();
-          await page.waitForTimeout(3000);
-        }
-      } else {
-        const saveButton = page.getByRole('button', { name: /下書き|保存|save/i });
-        if (await saveButton.count()) {
-          await saveButton.first().click();
-          await page.waitForTimeout(3000);
-        }
-      }
+       
 
       await context.storageState({ path: statePath });
-      await browser.close();
+      
           await browser.close();
           EOF
-
-          node post.mjs
+          　　　　　　node post.mjs
 
       - name: Upload updated state
         uses: actions/upload-artifact@v4
