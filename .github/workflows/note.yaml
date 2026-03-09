@@ -72,7 +72,7 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.TAVILY_API_KEY;
-          75 const theme = process.env.THEME || '大阪 マツエク';
+          const theme = process.env.THEME || '大阪 マツエク';
           const target = process.env.TARGET || '';
           const message = process.env.MESSAGE || '';
 
