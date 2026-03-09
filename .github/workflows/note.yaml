@@ -1,185 +1,108 @@
-name: Note Workflow
+import { chromium } from 'playwright';
+import fs from 'fs';
 
-on:
-  workflow_dispatch:
-    inputs:
-      theme:
-        description: 記事テーマ
-        required: true
-        type: string
-      target:
-        description: 想定読者
-        required: true
-        type: string
-      message:
-        description: 核メッセージ
-        required: true
-        type: string
-      cta:
-        description: CTA
-        required: true
-        type: string
-      is_public:
-        description: 公開(true)/下書き(false)
-        required: true
-        default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
+const article = JSON.parse(fs.readFileSync('article.json', 'utf-8'));
 
-jobs:
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    storageState: 'auth.json'
+  });
+  const page = await context.newPage();
 
-  research:
-    runs-on: ubuntu-latest
+  try {
+    // note.comの記事作成ページに移動
+    await page.goto('https://note.com/new', { 
+      waitUntil: 'networkidle',
+      timeout: 60000 
+    });
+    
+    // UIの完全レンダリングを待つ
+    await page.waitForTimeout(3000);
 
-    steps:
+    // タイトル入力欄を複数の方法で探す
+    const titleSelectors = [
+      'input[placeholder*="タイトル"]',
+      'textarea[placeholder*="タイトル"]',
+      '[data-testid="title-input"]',
+      'div[contenteditable="true"]:first-of-type',
+      '[placeholder="記事タイトル"]',
+      '[data-placeholder="記事タイトル"]'
+    ];
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    let titleInput = null;
+    for (const selector of titleSelectors) {
+      try {
+        console.log(`Trying selector: ${selector}`);
+        titleInput = await page.waitForSelector(selector, { timeout: 5000 });
+        if (titleInput) {
+          console.log(`Found title input with: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        console.log(`Selector ${selector} not found, trying next...`);
+        continue;
+      }
+    }
 
-      - run: |
-          echo '{"research":"ok"}' > research.json
+    if (!titleInput) {
+      throw new Error('Title field not found after trying all selectors');
+    }
 
-      - id: collect
-        run: |
-          echo "research_b64=$(base64 -w 0 research.json)" >> "$GITHUB_OUTPUT"
+    // タイトル入力
+    await titleInput.click();
+    await titleInput.fill(article.title);
+    console.log('Title entered successfully');
 
+    // 本文入力欄を探す
+    const bodySelectors = [
+      'div[contenteditable="true"].note-common-editor',
+      '[data-testid="body-editor"]',
+      'div[contenteditable="true"]:not(:first-of-type)',
+      '.note-editor-body'
+    ];
 
+    let bodyInput = null;
+    for (const selector of bodySelectors) {
+      try {
+        console.log(`Trying body selector: ${selector}`);
+        bodyInput = await page.waitForSelector(selector, { timeout: 5000 });
+        if (bodyInput) {
+          console.log(`Found body input with: ${selector}`);
+          break;
+        }
+      } catch (e) {
+        console.log(`Body selector ${selector} not found, trying next...`);
+        continue;
+      }
+    }
 
-  write:
-    runs-on: ubuntu-latest
-    needs: research
+    if (!bodyInput) {
+      throw new Error('Body field not found');
+    }
 
-    outputs:
-      article_b64: ${{ steps.collect.outputs.article_b64 }}
+    // 本文入力
+    await bodyInput.click();
+    await bodyInput.fill(article.body);
+    console.log('Body entered successfully');
 
-    steps:
+    // スクリーンショット保存（デバッグ用）
+    await page.screenshot({ path: 'debug-before-save.png' });
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    // 下書き保存ボタンを探す
+    await page.waitForTimeout(1000);
+    const saveButton = await page.waitForSelector('button:has-text("下書き保存"), button:has-text("保存")');
+    await saveButton.click();
+    console.log('Draft saved successfully');
 
-      - run: |
-          cat <<EOF > article.json
-          {
-            "title": "note自動投稿テスト",
-            "body": "これはGitHub Actionsから自動投稿されたテスト記事です。"
-          }
-          EOF
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: 'debug-after-save.png' });
 
-      - id: collect
-        run: |
-          echo "article_b64=$(base64 -w 0 article.json)" >> "$GITHUB_OUTPUT"
-
-
-
-  post:
-    runs-on: ubuntu-latest
-    needs: write
-
-    env:
-      NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-      ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
-      IS_PUBLIC: ${{ github.event.inputs.is_public }}
-
-    steps:
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: |
-          npm init -y
-          npm install playwright
-          npx playwright install chromium
-
-      - run: |
-          cat > note-state.json <<EOF
-          ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-          EOF
-
-      - run: |
-          cat <<'EOF' > post.mjs
-
-          import { chromium } from "playwright";
-
-          const data = JSON.parse(
-            Buffer.from(process.env.ARTICLE_B64, "base64").toString()
-          );
-
-          const browser = await chromium.launch({
-            headless: true
-          });
-
-          const context = await browser.newContext({
-            storageState: "note-state.json"
-          });
-
-          const page = await context.newPage();
-
-          await page.goto("https://note.com/new");
-
-          await page.waitForTimeout(5000);
-
-          const titleSelectors = [
-            '[placeholder="記事タイトル"]',
-            '[data-placeholder="記事タイトル"]',
-            '[contenteditable="true"]',
-            'textarea'
-          ];
-
-          let titleDone = false;
-
-          for (const sel of titleSelectors) {
-
-            const loc = page.locator(sel).first();
-
-            if (await loc.count()) {
-
-              try {
-
-                await loc.click();
-
-                await loc.fill(data.title);
-
-                titleDone = true;
-
-                break;
-
-              } catch {}
-
-            }
-
-          }
-
-          if (!titleDone) {
-
-            throw new Error("title field not found");
-
-          }
-
-          await page.keyboard.press("Tab");
-
-          await page.keyboard.type(data.body, {
-            delay: 5
-          });
-
-          if (process.env.IS_PUBLIC === "true") {
-
-            await page.click('button:has-text("公開")');
-
-          } else {
-
-            await page.click('button:has-text("下書き")');
-
-          }
-
-          await page.waitForTimeout(5000);
-
-          await browser.close();
-
-          EOF
-
-          node post.mjs
+  } catch (error) {
+    console.error('Error:', error);
+    await page.screenshot({ path: 'error-screenshot.png' });
+    throw error;
+  } finally {
+    await browser.close();
+  }
+})();
