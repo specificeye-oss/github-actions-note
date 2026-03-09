@@ -316,12 +316,12 @@ jobs:
   post:
     name: Post to note.com (Playwright)
     runs-on: ubuntu-latest
-    needs: [write, factcheck]
+    needs: factcheck
     if: ${{ github.event.inputs.dry_run == 'false' }}
     env:
       NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
       FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
-      TITLE: ${{ needs.write.outputs.title }}
+      
       IS_PUBLIC: ${{ github.event.inputs.is_public }}
     steps:
       - name: Checkout
