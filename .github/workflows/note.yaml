@@ -1,95 +1,44 @@
 name: Note Workflow
 
 on:
-  schedule:
-    - cron: '0 22 * * *'
   workflow_dispatch:
     inputs:
       theme:
-        description: '記事テーマ'
+        description: 記事テーマ
         required: true
         type: string
       target:
-        description: '想定読者（ペルソナ）'
+        description: 想定読者
         required: true
         type: string
       message:
-        description: '読者に伝えたい核メッセージ'
+        description: 核メッセージ
         required: true
         type: string
       cta:
-        description: '読後のアクション（CTA）'
+        description: CTA
         required: true
-        type: string
-      tags:
-        description: 'カンマ区切りタグ（任意）'
-        required: false
-        default: ''
         type: string
       is_public:
-        description: '公開(true)/下書き(false)'
+        description: 公開(true)/下書き(false)
         required: true
-        default: 'false'
+        default: "false"
         type: choice
         options:
-          - 'true'
-          - 'false'
-      dry_run:
-        description: '投稿をスキップ（生成のみ）'
-        required: true
-        default: 'false'
-        type: choice
-        options:
-          - 'true'
-          - 'false'
-
-permissions:
-  contents: read
-
-env:
-  TZ: Asia/Tokyo
+          - "true"
+          - "false"
 
 jobs:
 
   research:
     runs-on: ubuntu-latest
-    env:
-      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-      THEME: ${{ github.event.inputs.theme }}
-      TARGET: ${{ github.event.inputs.target }}
-      MESSAGE: ${{ github.event.inputs.message }}
-    outputs:
-      research_b64: ${{ steps.collect.outputs.research_b64 }}
     steps:
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Research
-        run: |
-          cat > research.mjs <<'EOF'
-          import fs from 'fs';
-
-          const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || '';
-
-          const res = await fetch('https://api.tavily.com/search', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-              api_key:apiKey,
-              query:theme,
-              search_depth:'advanced',
-              max_results:5
-            })
-          });
-
-          const json = await res.json();
-          fs.writeFileSync('research.json',JSON.stringify(json,null,2));
-          EOF
-
-          node research.mjs
+      - run: |
+          echo '{"research":"ok"}' > research.json
 
       - id: collect
         run: |
@@ -98,64 +47,21 @@ jobs:
   write:
     runs-on: ubuntu-latest
     needs: research
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      RESEARCH_B64: ${{ needs.research.outputs.research_b64 }}
-      THEME: ${{ github.event.inputs.theme }}
-      TARGET: ${{ github.event.inputs.target }}
-      MESSAGE: ${{ github.event.inputs.message }}
-      CTA: ${{ github.event.inputs.cta }}
     outputs:
       article_b64: ${{ steps.collect.outputs.article_b64 }}
     steps:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
-      - name: Write
-        run: |
-          cat > write.mjs <<'EOF'
-          import fs from 'fs';
-
-          const apiKey = process.env.ANTHROPIC_API_KEY;
-          const research = JSON.parse(Buffer.from(process.env.RESEARCH_B64,'base64').toString());
-
-          const prompt = `
-          テーマ:${process.env.THEME}
-          読者:${process.env.TARGET}
-          メッセージ:${process.env.MESSAGE}
-          CTA:${process.env.CTA}
-
-          ${JSON.stringify(research)}
-          `;
-
-          const res = await fetch('https://api.anthropic.com/v1/messages',{
-            method:'POST',
-            headers:{
-              'x-api-key':apiKey,
-              'anthropic-version':'2023-06-01',
-              'content-type':'application/json'
-            },
-            body:JSON.stringify({
-              model:'claude-haiku-4-5',
-              max_tokens:3000,
-              messages:[{role:'user',content:prompt}]
-            })
-          });
-
-          const json = await res.json();
-          const text = json.content[0].text;
-
-          const article={
-            title:process.env.THEME,
-            body:text
-          };
-
-          fs.writeFileSync('article.json',JSON.stringify(article,null,2));
+      - run: |
+          cat <<EOF > article.json
+          {
+            "title": "テスト記事",
+            "body": "これは自動投稿テストです"
+          }
           EOF
-
-          node write.mjs
 
       - id: collect
         run: |
@@ -165,16 +71,16 @@ jobs:
   post:
     runs-on: ubuntu-latest
     needs: write
-    if: ${{ github.event.inputs.dry_run == 'false' }}
     env:
       NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
       ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
       IS_PUBLIC: ${{ github.event.inputs.is_public }}
+
     steps:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
 
       - run: |
           npm init -y
@@ -182,39 +88,45 @@ jobs:
           npx playwright install chromium
 
       - run: |
-          cat > note-state.json <<'EOF'
+          cat > note-state.json <<EOF
           ${{ secrets.NOTE_STORAGE_STATE_JSON }}
           EOF
 
-      - name: Post
-        run: |
-          cat > post.mjs <<'EOF'
-          import { chromium } from 'playwright';
+      - run: |
+          cat <<'EOF' > post.mjs
+          import { chromium } from "playwright";
 
-          const data=JSON.parse(Buffer.from(process.env.ARTICLE_B64,'base64').toString());
-          const isPublic=process.env.IS_PUBLIC==='true';
+          const data = JSON.parse(
+            Buffer.from(process.env.ARTICLE_B64, "base64").toString()
+          );
 
-          const browser=await chromium.launch({headless:true});
-          const context=await browser.newContext({storageState:'note-state.json'});
-          const page=await context.newPage();
+          const browser = await chromium.launch();
+          const context = await browser.newContext({
+            storageState: "note-state.json",
+          });
 
-          await page.goto('https://editor.note.com/notes/new');
+          const page = await context.newPage();
 
-          await page.waitForSelector('textarea');
+          await page.goto("https://editor.note.com/notes/new");
 
-          await page.fill('textarea',data.title);
+          await page.waitForSelector('[contenteditable="true"]');
 
-          await page.keyboard.press('Tab');
+          const title = page.locator('[contenteditable="true"]').first();
 
-          await page.keyboard.type(data.body,{delay:5});
+          await title.click();
+          await title.type(data.title);
 
-          if(isPublic){
+          await page.keyboard.press("Tab");
+
+          await page.keyboard.type(data.body);
+
+          if (process.env.IS_PUBLIC === "true") {
             await page.click('button:has-text("公開")');
-          }else{
+          } else {
             await page.click('button:has-text("下書き")');
           }
 
-          await page.waitForTimeout(3000);
+          await page.waitForTimeout(4000);
 
           await browser.close();
           EOF
