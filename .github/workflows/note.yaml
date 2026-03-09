@@ -1,32 +1,47 @@
 name: Note Workflow
 
 on:
+  schedule:
+    - cron: '0 22 * * *'
   workflow_dispatch:
     inputs:
       theme:
-        description: 記事テーマ
+        description: '記事テーマ'
         required: true
         type: string
       target:
-        description: 想定読者
+        description: '想定読者（ペルソナ）'
         required: true
         type: string
       message:
-        description: 核メッセージ
+        description: '読者に伝えたい核メッセージ'
         required: true
         type: string
       cta:
-        description: CTA
+        description: '読後のアクション（CTA）'
         required: true
         type: string
+      tags:
+        description: 'カンマ区切りタグ（任意）'
+        required: false
+        default: ''
+        type: string
       is_public:
-        description: 公開(true)/下書き(false)
+        description: '公開(true)/下書き(false)'
         required: true
-        default: "false"
+        default: 'false'
         type: choice
         options:
-          - "true"
-          - "false"
+          - 'true'
+          - 'false'
+      dry_run:
+        description: '投稿をスキップ（生成のみ）'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: read
@@ -35,164 +50,364 @@ env:
   TZ: Asia/Tokyo
 
 jobs:
-
   research:
+    name: Research (Tavily)
     runs-on: ubuntu-latest
+    env:
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      THEME: ${{ github.event.inputs.theme }}
+      TARGET: ${{ github.event.inputs.target }}
+      MESSAGE: ${{ github.event.inputs.message }}
     outputs:
       research_b64: ${{ steps.collect.outputs.research_b64 }}
-
     steps:
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - run: |
-          echo '{"research":"ok"}' > research.json
+      - name: Research with Tavily
+        run: |
+          cat > research.mjs <<'EOF'
+          import fs from 'fs';
 
-      - id: collect
+          const apiKey = process.env.TAVILY_API_KEY;
+          const theme = process.env.THEME || '大阪 マツエク';
+          const target = process.env.TARGET || '';
+          const message = process.env.MESSAGE || '';
+
+          const prompt = `${theme} ${target} ${message}`.trim();
+
+          const body = {
+            query: prompt,
+            search_depth: 'advanced',
+            topic: 'general',
+            max_results: 5,
+            include_answer: true
+          };
+
+          const res = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              api_key: apiKey,
+              ...body
+            })
+          });
+
+          if (!res.ok) {
+            const txt = await res.text();
+            console.error(txt);
+            process.exit(1);
+          }
+
+          const json = await res.json();
+          fs.writeFileSync('research.json', JSON.stringify(json, null, 2));
+          console.log('research saved');
+          EOF
+
+          node research.mjs
+
+      - name: Collect research
+        id: collect
         run: |
           echo "research_b64=$(base64 -w 0 research.json)" >> "$GITHUB_OUTPUT"
 
-
+      - name: Upload research artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-json
+          path: research.json
 
   write:
+    name: Write (Claude)
     runs-on: ubuntu-latest
     needs: research
-
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      THEME: ${{ github.event.inputs.theme }}
+      TARGET: ${{ github.event.inputs.target }}
+      MESSAGE: ${{ github.event.inputs.message }}
+      CTA: ${{ github.event.inputs.cta }}
+      TAGS: ${{ github.event.inputs.tags }}
+      RESEARCH_B64: ${{ needs.research.outputs.research_b64 }}
     outputs:
       article_b64: ${{ steps.collect.outputs.article_b64 }}
-
     steps:
-
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - run: |
-          cat <<EOF > article.json
+      - name: Write article with Claude
+        run: |
+          cat > write.mjs <<'EOF'
+          import fs from 'fs';
+
+          const apiKey = process.env.ANTHROPIC_API_KEY;
+          const theme = process.env.THEME || '';
+          const target = process.env.TARGET || '';
+          const message = process.env.MESSAGE || '';
+          const cta = process.env.CTA || '';
+          const tags = process.env.TAGS || '';
+          const research = JSON.parse(Buffer.from(process.env.RESEARCH_B64, 'base64').toString('utf8'));
+
+          const systemPrompt = `
+          あなたは日本語のnote記事を書くプロの編集者です。
+          目的は、読みやすく、信頼感があり、行動につながるnote記事を作ることです。
+          出力は必ずJSONのみ。
+          形式:
           {
-            "title": "note自動投稿テスト",
-            "body": "GitHub Actionsからの自動投稿テストです。"
+            "title": "記事タイトル",
+            "body": "note本文。見出しや改行を含む",
+            "tags": ["タグ1","タグ2","タグ3"]
           }
+          `.trim();
+
+          const userPrompt = `
+          記事テーマ: ${theme}
+          想定読者: ${target}
+          読者に伝えたい核メッセージ: ${message}
+          読後のアクション: ${cta}
+          希望タグ: ${tags}
+
+          リサーチ結果:
+          ${JSON.stringify(research, null, 2)}
+
+          条件:
+          - 日本語
+          - 読みやすい自然な文章
+          - 誇張しすぎない
+          - 見出しを使う
+          - 最後にCTAを入れる
+          - tags は配列で3〜5個
+          `.trim();
+
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5',
+              max_tokens: 4000,
+              system: systemPrompt,
+              messages: [
+                {
+                  role: 'user',
+                  content: userPrompt
+                }
+              ]
+            })
+          });
+
+          if (!res.ok) {
+            const txt = await res.text();
+            console.error(txt);
+            process.exit(1);
+          }
+
+          const json = await res.json();
+          const text = (json.content?.[0]?.text || '').replace(/```json|```/g, '').trim();
+          fs.writeFileSync('article_raw.txt', text);
+
+          let parsed;
+          try {
+            parsed = JSON.parse(text);
+          } catch {
+            console.error('Claude output was not valid JSON');
+            console.error(text);
+            process.exit(1);
+          }
+
+          fs.writeFileSync('article.json', JSON.stringify(parsed, null, 2));
+          console.log('article saved');
           EOF
 
-      - id: collect
+          node write.mjs
+
+      - name: Collect article
+        id: collect
         run: |
           echo "article_b64=$(base64 -w 0 article.json)" >> "$GITHUB_OUTPUT"
 
+      - name: Upload article artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: article-json
+          path: |
+            article.json
+            article_raw.txt
 
-
-  post:
+  factcheck:
+    name: Fact-check (Tavily)
     runs-on: ubuntu-latest
     needs: write
+    env:
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
+    outputs:
+      final_b64: ${{ steps.collect.outputs.final_b64 }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
+      - name: Fact-check article
+        run: |
+          cat > factcheck.mjs <<'EOF'
+          import fs from 'fs';
+
+          const apiKey = process.env.TAVILY_API_KEY;
+          const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
+
+          const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
+
+          const res = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              api_key: apiKey,
+              query,
+              search_depth: 'advanced',
+              topic: 'general',
+              max_results: 5,
+              include_answer: true
+            })
+          });
+
+          if (!res.ok) {
+            const txt = await res.text();
+            console.error(txt);
+            process.exit(1);
+          }
+
+          const fact = await res.json();
+
+          const finalArticle = {
+            ...article,
+            factcheck: fact
+          };
+
+          fs.writeFileSync('final_article.json', JSON.stringify(finalArticle, null, 2));
+          console.log('final article saved');
+          EOF
+
+          node factcheck.mjs
+
+      - name: Collect final article
+        id: collect
+        run: |
+          echo "final_b64=$(base64 -w 0 final_article.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload final article artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-article-json
+          path: final_article.json
+
+  post:
+    name: Post to note.com (Playwright)
+    runs-on: ubuntu-latest
+    needs: factcheck
+    if: ${{ github.event.inputs.dry_run == 'false' }}
     env:
       NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-      ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
+      FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
       IS_PUBLIC: ${{ github.event.inputs.is_public }}
-
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
-      - run: |
+      - name: Install Playwright
+        run: |
           npm init -y
           npm install playwright
-          npx playwright install chromium
+          npx playwright install --with-deps chromium
 
-      - run: |
-          cat > note-state.json <<EOF
+      - name: Restore storage state
+        run: |
+          cat > note-state.json <<'EOF'
           ${{ secrets.NOTE_STORAGE_STATE_JSON }}
           EOF
 
-      - run: |
-          cat <<'EOF' > post.mjs
-          import { chromium } from "playwright";
+      - name: Post to note
+        run: |
+          cat > post.mjs <<'EOF'
+          import { chromium } from 'playwright';
 
-          const data = JSON.parse(
-            Buffer.from(process.env.ARTICLE_B64, "base64").toString()
-          );
+          const data = JSON.parse(Buffer.from(process.env.FINAL_B64, 'base64').toString('utf8'));
+          const statePath = './note-state.json';
+          const isPublic = process.env.IS_PUBLIC === 'true';
 
-          const browser = await chromium.launch({
-            headless: true
-          });
-
-          const context = await browser.newContext({
-            storageState: "note-state.json"
-          });
-
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ storageState: statePath });
           const page = await context.newPage();
 
-          await page.goto("https://note.com/new");
-
+          await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
           await page.waitForTimeout(5000);
 
           const titleSelectors = [
-            "textarea",
-            "input[placeholder*='タイトル']",
-            "[contenteditable='true']"
+            'textarea',
+            'input[placeholder*="タイトル"]',
+            '[contenteditable="true"]'
           ];
 
           let titleDone = false;
-
           for (const sel of titleSelectors) {
-
             const loc = page.locator(sel).first();
-
             if (await loc.count()) {
-
               try {
-
                 await loc.click();
-
                 await loc.fill(data.title);
-
                 titleDone = true;
-
                 break;
-
               } catch {}
-
             }
-
           }
 
           if (!titleDone) {
-            console.log("title field not found");
+            console.log('title field not found');
           }
 
-          await page.keyboard.type(data.title,{delay:5});
-          await page.keyboard.type(data.body,{delay:5});
+          await page.keyboard.type(data.title, { delay: 5 });
+          await page.keyboard.type(data.body, { delay: 5 });
+          await page.waitForTimeout(3000);
 
-          if (process.env.IS_PUBLIC === "true") {
-
-            const publishButton = page.getByRole("button",{name:/公開|publish/i});
-
+          if (isPublic) {
+            const publishButton = page.getByRole('button', { name: /公開|publish/i });
             if (await publishButton.count()) {
-
               await publishButton.first().click();
-
               await page.waitForTimeout(3000);
-
             }
-
           } else {
-
-            const saveButton = page.getByRole("button",{name:/下書き|保存|save/i});
-
+            const saveButton = page.getByRole('button', { name: /下書き|保存|save/i });
             if (await saveButton.count()) {
-
               await saveButton.first().click();
-
               await page.waitForTimeout(3000);
-
             }
-
           }
 
+          await context.storageState({ path: statePath });
           await browser.close();
           EOF
 
           node post.mjs
+
+      - name: Upload updated state
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-note-state
+          path: note-state.json
