@@ -348,63 +348,110 @@ jobs:
           cat > post.mjs <<'EOF'
           import { chromium } from 'playwright';
 
-          const data = JSON.parse(Buffer.from(process.env.FINAL_B64, 'base64').toString('utf8'));
-          const statePath = './note-state.json';
-          const isPublic = process.env.IS_PUBLIC === 'true';
+          async function main() {
+            const data = JSON.parse(Buffer.from(process.env.FINAL_B64, 'base64').toString('utf8'));
+            const statePath = './note-state.json';
+            const isPublic = process.env.IS_PUBLIC === 'true';
 
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ storageState: statePath });
-          const page = await context.newPage();
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ storageState: statePath });
+            const page = await context.newPage();
 
-          await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
-          await page.waitForTimeout(5000);
+            let step = 0;
+            const shot = async (label) => {
+              await page.screenshot({ path: `debug_${String(++step).padStart(2,'0')}_${label}.png` });
+              console.log(`[screenshot] ${label}`);
+            };
 
-          const titleSelectors = [
-            'textarea',
-            'input[placeholder*="タイトル"]',
-            '[contenteditable="true"]'
-          ];
+            try {
+              console.log('Navigating to note.com/new...');
+              await page.goto('https://note.com/new', { waitUntil: 'networkidle' });
+              await shot('after_goto');
 
-          let titleDone = false;
-          for (const sel of titleSelectors) {
-            const loc = page.locator(sel).first();
-            if (await loc.count()) {
-              try {
-                await loc.click();
-                await loc.fill(data.title);
-                titleDone = true;
-                break;
-              } catch {}
-            }
-          }
+              // ── ① タイトル入力 ──
+              console.log('Filling title...');
+              const titleLocator = page.locator([
+                'div[data-placeholder*="タイトル"]',
+                'div[data-placeholder*="title"]',
+                'textarea[placeholder*="タイトル"]',
+                'input[placeholder*="タイトル"]',
+                '.ProseMirror >> nth=0',
+                '[contenteditable="true"] >> nth=0'
+              ].join(', ')).first();
 
-          if (!titleDone) {
-            console.log('title field not found');
-          }
+              await titleLocator.waitFor({ state: 'visible', timeout: 30000 });
+              await titleLocator.click();
+              await page.keyboard.press('Meta+A');
+              await page.keyboard.press('Control+A');
+              await page.keyboard.type(data.title, { delay: 30 });
+              await shot('after_title');
 
-          await page.keyboard.type(data.title, { delay: 5 });
-          await page.keyboard.type(data.body, { delay: 5 });
-          await page.waitForTimeout(3000);
+              // ── ② 本文入力 ──
+              console.log('Filling body...');
+              await page.keyboard.press('Tab');
+              await page.waitForTimeout(500);
 
-          if (isPublic) {
-            const publishButton = page.getByRole('button', { name: /公開|publish/i });
-            if (await publishButton.count()) {
-              await publishButton.first().click();
+              const bodyLocator = page.locator([
+                'div[data-placeholder*="本文"]',
+                'div[data-placeholder*="body"]',
+                '.ProseMirror >> nth=1',
+                '[contenteditable="true"] >> nth=1'
+              ].join(', ')).first();
+
+              const bodyFound = await bodyLocator.count();
+              if (bodyFound > 0) {
+                await bodyLocator.click();
+              }
+
+              await page.keyboard.type(data.body, { delay: 10 });
+              await shot('after_body');
+
+              await page.waitForTimeout(2000);
+
+              // ── ③ 保存 / 公開 ──
+              if (isPublic) {
+                console.log('Publishing...');
+                const publishBtn = page.getByRole('button', { name: /公開する|公開設定|publish/i }).first();
+                await publishBtn.waitFor({ state: 'visible', timeout: 15000 });
+                await publishBtn.click();
+                await page.waitForTimeout(3000);
+                const confirmBtn = page.getByRole('button', { name: /公開する/i }).first();
+                if (await confirmBtn.count()) {
+                  await confirmBtn.click();
+                }
+                await shot('after_publish');
+              } else {
+                console.log('Saving draft...');
+                const saveBtn = page.getByRole('button', { name: /下書き保存|下書き|保存/i }).first();
+                await saveBtn.waitFor({ state: 'visible', timeout: 15000 });
+                await saveBtn.click();
+                await shot('after_save');
+              }
+
               await page.waitForTimeout(3000);
-            }
-          } else {
-            const saveButton = page.getByRole('button', { name: /下書き|保存|save/i });
-            if (await saveButton.count()) {
-              await saveButton.first().click();
-              await page.waitForTimeout(3000);
+              console.log('Done.');
+
+            } catch (err) {
+              await shot('error');
+              console.error('Post failed:', err.message);
+              throw err;
+            } finally {
+              await context.storageState({ path: statePath });
+              await browser.close();
             }
           }
 
-          await context.storageState({ path: statePath });
-          await browser.close();
+          main();
           EOF
 
           node post.mjs
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug_*.png
 
       - name: Upload updated state
         uses: actions/upload-artifact@v4
