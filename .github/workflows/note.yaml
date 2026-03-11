@@ -354,14 +354,7 @@ jobs:
             const isPublic = process.env.IS_PUBLIC === 'true';
 
             const browser = await chromium.launch({ headless: true });
-
-            // editor.note.com も同じセッションで扱えるよう設定
-            const context = await browser.newContext({
-              storageState: statePath,
-              extraHTTPHeaders: {
-                'Accept-Language': 'ja-JP,ja;q=0.9'
-              }
-            });
+            const context = await browser.newContext({ storageState: statePath });
             const page = await context.newPage();
 
             let step = 0;
@@ -371,23 +364,42 @@ jobs:
             };
 
             try {
-              // editor.note.com に直接アクセス
-              console.log('Navigating to editor.note.com/new...');
-              await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
-              console.log('URL after goto:', page.url());
-
-              // Reactのハイドレーション完了を待つ（最大30秒）
-              console.log('Waiting for React editor to hydrate...');
-              await page.waitForFunction(() => {
-                const els = document.querySelectorAll('[contenteditable]');
-                return els.length > 0;
-              }, { timeout: 30000 }).catch(() => {
-                console.log('Still waiting...');
-              });
-
-              // さらに2秒待機
+              // ── Step1: note.com にアクセスしてセッションを確立 ──
+              console.log('Step1: Establishing session on note.com...');
+              await page.goto('https://note.com', { waitUntil: 'domcontentloaded' });
               await page.waitForTimeout(2000);
-              await shot('after_goto');
+              console.log('note.com URL:', page.url());
+              await shot('step1_notecom');
+
+              // ── Step2: note.com/new に移動してリダイレクトを待つ ──
+              console.log('Step2: Navigating to note.com/new...');
+              await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
+              await page.waitForTimeout(3000);
+              console.log('After /new URL:', page.url());
+              await shot('step2_new');
+
+              // ── Step3: editor.note.com へのリダイレクト待ち ──
+              // URLが editor.note.com になるまで最大15秒待つ
+              let currentUrl = page.url();
+              let waited = 0;
+              while (!currentUrl.includes('editor.note.com') && waited < 15000) {
+                await page.waitForTimeout(1000);
+                waited += 1000;
+                currentUrl = page.url();
+                console.log(`Waiting for redirect... (${waited}ms) URL: ${currentUrl}`);
+              }
+              console.log('Final URL:', currentUrl);
+              await shot('step3_redirected');
+
+              // ── Step4: エディタのcontenteditable待ち ──
+              console.log('Step4: Waiting for editor contenteditable...');
+              await page.waitForFunction(() => {
+                return document.querySelectorAll('[contenteditable]').length > 0;
+              }, { timeout: 20000 }).catch(() => {
+                console.log('contenteditable wait timed out');
+              });
+              await page.waitForTimeout(2000);
+              await shot('step4_editor');
 
               const editableCount = await page.evaluate(() =>
                 document.querySelectorAll('[contenteditable]').length
@@ -395,9 +407,9 @@ jobs:
               console.log(`Found ${editableCount} contenteditable elements`);
 
               if (editableCount === 0) {
-                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
+                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 500));
                 console.log('HTML snippet:', snippet);
-                throw new Error('Editor did not load. Check screenshot.');
+                throw new Error('Editor did not load.');
               }
 
               // ── ① タイトル入力 ──
@@ -414,8 +426,6 @@ jobs:
               // ── ② 本文入力 ──
               console.log('Filling body...');
               const count = await allEditables.count();
-              console.log(`Total editables: ${count}`);
-
               if (count >= 2) {
                 await allEditables.nth(1).click();
                 await page.waitForTimeout(300);
@@ -423,7 +433,6 @@ jobs:
                 await page.keyboard.press('Tab');
                 await page.waitForTimeout(500);
               }
-
               await page.keyboard.type(data.body, { delay: 10 });
               await shot('after_body');
               await page.waitForTimeout(2000);
