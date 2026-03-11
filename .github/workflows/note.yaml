@@ -359,48 +359,60 @@ jobs:
 
             let step = 0;
             const shot = async (label) => {
-              await page.screenshot({ path: `debug_${String(++step).padStart(2,'0')}_${label}.png` });
+              await page.screenshot({ path: `debug_${String(++step).padStart(2,'0')}_${label}.png`, fullPage: true });
               console.log(`[screenshot] ${label}`);
+            };
+
+            const dumpEditables = async () => {
+              const info = await page.evaluate(() => {
+                const els = document.querySelectorAll('[contenteditable]');
+                return Array.from(els).map((el, i) => ({
+                  index: i,
+                  tag: el.tagName,
+                  contenteditable: el.getAttribute('contenteditable'),
+                  placeholder: el.getAttribute('data-placeholder') || el.getAttribute('placeholder') || '',
+                  class: el.className.slice(0, 80),
+                  text: el.innerText.slice(0, 30)
+                }));
+              });
+              console.log('[editables]', JSON.stringify(info, null, 2));
             };
 
             try {
               console.log('Navigating to note.com/new...');
               await page.goto('https://note.com/new', { waitUntil: 'networkidle' });
+              await page.waitForTimeout(5000);
               await shot('after_goto');
+              await dumpEditables();
 
               // ── ① タイトル入力 ──
               console.log('Filling title...');
-              const titleLocator = page.locator([
-                'div[data-placeholder*="タイトル"]',
-                'div[data-placeholder*="title"]',
-                'textarea[placeholder*="タイトル"]',
-                'input[placeholder*="タイトル"]',
-                '.ProseMirror >> nth=0',
-                '[contenteditable="true"] >> nth=0'
-              ].join(', ')).first();
+              const allEditables = page.locator('[contenteditable="true"]');
+              const count = await allEditables.count();
+              console.log(`Found ${count} contenteditable elements`);
 
-              await titleLocator.waitFor({ state: 'visible', timeout: 30000 });
-              await titleLocator.click();
-              await page.keyboard.press('Meta+A');
+              if (count === 0) {
+                throw new Error('No contenteditable elements found. Check debug screenshot.');
+              }
+
+              const titleEl = allEditables.nth(0);
+              await titleEl.click();
+              await page.waitForTimeout(300);
               await page.keyboard.press('Control+A');
+              await page.keyboard.press('Meta+A');
+              await page.keyboard.press('Backspace');
               await page.keyboard.type(data.title, { delay: 30 });
               await shot('after_title');
 
               // ── ② 本文入力 ──
               console.log('Filling body...');
-              await page.keyboard.press('Tab');
-              await page.waitForTimeout(500);
-
-              const bodyLocator = page.locator([
-                'div[data-placeholder*="本文"]',
-                'div[data-placeholder*="body"]',
-                '.ProseMirror >> nth=1',
-                '[contenteditable="true"] >> nth=1'
-              ].join(', ')).first();
-
-              const bodyFound = await bodyLocator.count();
-              if (bodyFound > 0) {
-                await bodyLocator.click();
+              if (count >= 2) {
+                const bodyEl = allEditables.nth(1);
+                await bodyEl.click();
+                await page.waitForTimeout(300);
+              } else {
+                await page.keyboard.press('Tab');
+                await page.waitForTimeout(500);
               }
 
               await page.keyboard.type(data.body, { delay: 10 });
@@ -409,6 +421,11 @@ jobs:
               await page.waitForTimeout(2000);
 
               // ── ③ 保存 / 公開 ──
+              const buttons = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
+              );
+              console.log('[buttons]', buttons);
+
               if (isPublic) {
                 console.log('Publishing...');
                 const publishBtn = page.getByRole('button', { name: /公開する|公開設定|publish/i }).first();
