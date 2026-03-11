@@ -354,7 +354,14 @@ jobs:
             const isPublic = process.env.IS_PUBLIC === 'true';
 
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ storageState: statePath });
+
+            // editor.note.com も同じセッションで扱えるよう設定
+            const context = await browser.newContext({
+              storageState: statePath,
+              extraHTTPHeaders: {
+                'Accept-Language': 'ja-JP,ja;q=0.9'
+              }
+            });
             const page = await context.newPage();
 
             let step = 0;
@@ -364,36 +371,33 @@ jobs:
             };
 
             try {
-              console.log('Navigating to note.com/new...');
-              await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
+              // editor.note.com に直接アクセス
+              console.log('Navigating to editor.note.com/new...');
+              await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
+              console.log('URL after goto:', page.url());
 
-              // エディタのJS描画を待つ（最大20秒）
-              console.log('Waiting for editor to load...');
+              // Reactのハイドレーション完了を待つ（最大30秒）
+              console.log('Waiting for React editor to hydrate...');
               await page.waitForFunction(() => {
-                return document.querySelectorAll('[contenteditable]').length > 0;
-              }, { timeout: 20000 }).catch(() => {
-                console.log('waitForFunction timed out, continuing...');
+                const els = document.querySelectorAll('[contenteditable]');
+                return els.length > 0;
+              }, { timeout: 30000 }).catch(() => {
+                console.log('Still waiting...');
               });
 
-              // 追加で3秒待機
-              await page.waitForTimeout(3000);
+              // さらに2秒待機
+              await page.waitForTimeout(2000);
               await shot('after_goto');
 
-              // 現在のURLとタイトルをログ
-              console.log('URL:', page.url());
-              console.log('Title:', await page.title());
-
-              // contenteditable要素の数をログ
               const editableCount = await page.evaluate(() =>
                 document.querySelectorAll('[contenteditable]').length
               );
               console.log(`Found ${editableCount} contenteditable elements`);
 
-              // もし0個ならページのHTMLを一部出力して調査
               if (editableCount === 0) {
-                const bodySnippet = await page.evaluate(() => document.body.innerHTML.slice(0, 500));
-                console.log('Body snippet:', bodySnippet);
-                throw new Error('No contenteditable elements found. Check debug screenshot and body snippet above.');
+                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
+                console.log('HTML snippet:', snippet);
+                throw new Error('Editor did not load. Check screenshot.');
               }
 
               // ── ① タイトル入力 ──
@@ -403,7 +407,6 @@ jobs:
               await titleEl.click();
               await page.waitForTimeout(300);
               await page.keyboard.press('Control+A');
-              await page.keyboard.press('Meta+A');
               await page.keyboard.press('Backspace');
               await page.keyboard.type(data.title, { delay: 30 });
               await shot('after_title');
@@ -411,6 +414,8 @@ jobs:
               // ── ② 本文入力 ──
               console.log('Filling body...');
               const count = await allEditables.count();
+              console.log(`Total editables: ${count}`);
+
               if (count >= 2) {
                 await allEditables.nth(1).click();
                 await page.waitForTimeout(300);
@@ -427,7 +432,7 @@ jobs:
               const buttons = await page.evaluate(() =>
                 Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
               );
-              console.log('[buttons]', buttons);
+              console.log('[buttons]', JSON.stringify(buttons));
 
               if (isPublic) {
                 console.log('Publishing...');
