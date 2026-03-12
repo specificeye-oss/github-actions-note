@@ -65,7 +65,6 @@ jobs:
       - name: Resolve theme
         id: theme
         run: |
-          # workflow_dispatch の場合はそのまま使う
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "theme=${{ github.event.inputs.theme }}" >> "$GITHUB_OUTPUT"
             echo "target=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
@@ -75,8 +74,7 @@ jobs:
             echo "is_public=${{ github.event.inputs.is_public }}" >> "$GITHUB_OUTPUT"
             echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
           else
-            # スケジュール実行：曜日でテーマをローテーション
-            DAY=$(date +%u)  # 1=月 2=火 3=水 4=木 5=金 6=土 7=日
+            DAY=$(date +%u)
             case $DAY in
               1)
                 THEME="大阪マツエク モチがいい サロン"
@@ -166,30 +164,20 @@ jobs:
 
           const prompt = `${theme} ${target} ${message}`.trim();
 
-          const body = {
-            query: prompt,
-            search_depth: 'advanced',
-            topic: 'general',
-            max_results: 5,
-            include_answer: true
-          };
-
           const res = await fetch('https://api.tavily.com/search', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               api_key: apiKey,
-              ...body
+              query: prompt,
+              search_depth: 'advanced',
+              topic: 'general',
+              max_results: 5,
+              include_answer: true
             })
           });
 
-          if (!res.ok) {
-            const txt = await res.text();
-            console.error(txt);
-            process.exit(1);
-          }
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
 
           const json = await res.json();
           fs.writeFileSync('research.json', JSON.stringify(json, null, 2));
@@ -245,7 +233,6 @@ jobs:
           const systemPrompt = `
           あなたは日本語のnote記事を書くプロの編集者です。
           MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
-          目的は、読みやすく、信頼感があり、行動につながるnote記事を作ることです。
           出力は必ずJSONのみ。
           形式:
           {
@@ -261,19 +248,13 @@ jobs:
           読者に伝えたい核メッセージ: ${message}
           読後のアクション: ${cta}
           希望タグ: ${tags}
-
-          リサーチ結果:
-          ${JSON.stringify(research, null, 2)}
-
+          リサーチ結果: ${JSON.stringify(research, null, 2)}
           条件:
-          - 日本語
-          - 読みやすい自然な文章
-          - 誇張しすぎない
-          - 見出しを使う（H2・H3）
-          - 最後にCTAを入れる
+          - 日本語・読みやすい自然な文章・誇張しすぎない
+          - 見出しを使う（H2・H3）・最後にCTAを入れる
           - tags は配列で3〜5個
-          - MEO対策：「大阪」「地域名」を自然に文中に含める
-          - LLMO対策：「〜とは」「〜の選び方」「〜のポイント」など質問形式の見出しを使う
+          - MEO対策：「大阪」を自然に文中に含める
+          - LLMO対策：「〜とは」「〜の選び方」など質問形式の見出しを使う
           - キーワード「モチ」「早い」「安い」を自然に含める
           - 文字数は1500〜2500文字
           `.trim();
@@ -289,33 +270,19 @@ jobs:
               model: 'claude-haiku-4-5',
               max_tokens: 4000,
               system: systemPrompt,
-              messages: [
-                {
-                  role: 'user',
-                  content: userPrompt
-                }
-              ]
+              messages: [{ role: 'user', content: userPrompt }]
             })
           });
 
-          if (!res.ok) {
-            const txt = await res.text();
-            console.error(txt);
-            process.exit(1);
-          }
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
 
           const json = await res.json();
           const text = (json.content?.[0]?.text || '').replace(/```json|```/g, '').trim();
           fs.writeFileSync('article_raw.txt', text);
 
           let parsed;
-          try {
-            parsed = JSON.parse(text);
-          } catch {
-            console.error('Claude output was not valid JSON');
-            console.error(text);
-            process.exit(1);
-          }
+          try { parsed = JSON.parse(text); }
+          catch { console.error('Claude output was not valid JSON'); console.error(text); process.exit(1); }
 
           fs.writeFileSync('article.json', JSON.stringify(parsed, null, 2));
           console.log('article saved');
@@ -358,14 +325,11 @@ jobs:
 
           const apiKey = process.env.TAVILY_API_KEY;
           const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
-
           const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
 
           const res = await fetch('https://api.tavily.com/search', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               api_key: apiKey,
               query,
@@ -376,20 +340,10 @@ jobs:
             })
           });
 
-          if (!res.ok) {
-            const txt = await res.text();
-            console.error(txt);
-            process.exit(1);
-          }
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
 
           const fact = await res.json();
-
-          const finalArticle = {
-            ...article,
-            factcheck: fact
-          };
-
-          fs.writeFileSync('final_article.json', JSON.stringify(finalArticle, null, 2));
+          fs.writeFileSync('final_article.json', JSON.stringify({ ...article, factcheck: fact }, null, 2));
           console.log('final article saved');
           EOF
 
@@ -463,11 +417,10 @@ jobs:
               console.log('Navigating to editor.note.com/new...');
               await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
               console.log('URL:', page.url());
-              await shot('01_after_goto');
 
               console.log('Waiting 15s for React to render...');
               await page.waitForTimeout(15000);
-              await shot('02_after_wait');
+              await shot('01_after_wait');
 
               const editableCount = await page.evaluate(() =>
                 document.querySelectorAll('[contenteditable]').length
@@ -475,60 +428,122 @@ jobs:
               console.log(`Found ${editableCount} contenteditable elements`);
 
               if (editableCount === 0) {
-                const url = page.url();
-                console.log('Current URL:', url);
                 const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
                 console.log('HTML snippet:', snippet);
-                throw new Error(`Editor did not load. URL: ${url}`);
+                throw new Error(`Editor did not load. URL: ${page.url()}`);
               }
 
               // ── ① タイトル入力 ──
               console.log('Filling title...');
               const allEditables = page.locator('[contenteditable]');
-              const titleEl = allEditables.nth(0);
-              await titleEl.click();
+              await allEditables.nth(0).click();
               await page.waitForTimeout(300);
               await page.keyboard.press('Control+A');
               await page.keyboard.press('Backspace');
               await page.keyboard.type(data.title, { delay: 30 });
-              await shot('03_after_title');
+              await shot('02_after_title');
 
               // ── ② 本文入力 ──
               console.log('Filling body...');
               const count = await allEditables.count();
               if (count >= 2) {
                 await allEditables.nth(1).click();
-                await page.waitForTimeout(300);
               } else {
                 await page.keyboard.press('Tab');
-                await page.waitForTimeout(500);
               }
+              await page.waitForTimeout(300);
               await page.keyboard.type(data.body, { delay: 10 });
-              await shot('04_after_body');
+              await shot('03_after_body');
               await page.waitForTimeout(2000);
 
-              // ── ③ 保存 / 公開 ──
-              const buttons = await page.evaluate(() =>
+              // ── ③ ボタンを全部ログ出力してから保存・公開 ──
+              const allButtons = await page.evaluate(() =>
                 Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
               );
-              console.log('[buttons]', JSON.stringify(buttons));
+              console.log('[all buttons]', JSON.stringify(allButtons));
+              await shot('04_before_save');
 
               if (isPublic) {
-                console.log('Publishing...');
-                const publishBtn = page.getByRole('button', { name: /公開する|公開設定|publish/i }).first();
-                await publishBtn.waitFor({ state: 'visible', timeout: 15000 });
-                await publishBtn.click();
-                await page.waitForTimeout(3000);
-                const confirmBtn = page.getByRole('button', { name: /公開する/i }).first();
-                if (await confirmBtn.count()) {
-                  await confirmBtn.click();
+                // 公開ボタンを柔軟に探す
+                const publishPatterns = [
+                  /公開する/,
+                  /公開設定/,
+                  /投稿する/,
+                  /publish/i,
+                  /post/i
+                ];
+
+                let clicked = false;
+                for (const pattern of publishPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking publish button: ${pattern}`);
+                    await btn.click();
+                    clicked = true;
+                    break;
+                  }
                 }
-                await shot('05_after_publish');
+
+                if (!clicked) {
+                  // 最後の手段：ボタンのテキストで直接探す
+                  const btn = page.locator('button').filter({ hasText: /公開|投稿|publish/i }).first();
+                  if (await btn.count() > 0) {
+                    await btn.click();
+                    clicked = true;
+                  }
+                }
+
+                if (!clicked) {
+                  throw new Error('Publish button not found. Check screenshots and button list above.');
+                }
+
+                await page.waitForTimeout(3000);
+                await shot('05_after_publish_click');
+
+                // 確認ダイアログが出る場合
+                const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
+                for (const pattern of confirmPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking confirm button: ${pattern}`);
+                    await btn.click();
+                    break;
+                  }
+                }
+                await shot('06_after_confirm');
+
               } else {
-                console.log('Saving draft...');
-                const saveBtn = page.getByRole('button', { name: /下書き保存|下書き|保存/i }).first();
-                await saveBtn.waitFor({ state: 'visible', timeout: 15000 });
-                await saveBtn.click();
+                // 下書き保存
+                const draftPatterns = [
+                  /下書き保存/,
+                  /下書き/,
+                  /保存/,
+                  /save/i
+                ];
+
+                let clicked = false;
+                for (const pattern of draftPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking draft button: ${pattern}`);
+                    await btn.click();
+                    clicked = true;
+                    break;
+                  }
+                }
+
+                if (!clicked) {
+                  const btn = page.locator('button').filter({ hasText: /下書き|保存|save/i }).first();
+                  if (await btn.count() > 0) {
+                    await btn.click();
+                    clicked = true;
+                  }
+                }
+
+                if (!clicked) {
+                  throw new Error('Save button not found. Check screenshots and button list above.');
+                }
+
                 await shot('05_after_save');
               }
 
