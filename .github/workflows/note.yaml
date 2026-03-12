@@ -354,7 +354,10 @@ jobs:
             const isPublic = process.env.IS_PUBLIC === 'true';
 
             const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({ storageState: statePath });
+            const context = await browser.newContext({
+              storageState: statePath,
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            });
             const page = await context.newPage();
 
             let step = 0;
@@ -364,42 +367,16 @@ jobs:
             };
 
             try {
-              // ── Step1: note.com にアクセスしてセッションを確立 ──
-              console.log('Step1: Establishing session on note.com...');
-              await page.goto('https://note.com', { waitUntil: 'domcontentloaded' });
-              await page.waitForTimeout(2000);
-              console.log('note.com URL:', page.url());
-              await shot('step1_notecom');
+              // editor.note.com に直接アクセス（note-state.jsonにeditor.note.comのCookieが入っている）
+              console.log('Navigating to editor.note.com/new...');
+              await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
+              console.log('URL:', page.url());
+              await shot('01_after_goto');
 
-              // ── Step2: note.com/new に移動してリダイレクトを待つ ──
-              console.log('Step2: Navigating to note.com/new...');
-              await page.goto('https://note.com/new', { waitUntil: 'domcontentloaded' });
-              await page.waitForTimeout(3000);
-              console.log('After /new URL:', page.url());
-              await shot('step2_new');
-
-              // ── Step3: editor.note.com へのリダイレクト待ち ──
-              // URLが editor.note.com になるまで最大15秒待つ
-              let currentUrl = page.url();
-              let waited = 0;
-              while (!currentUrl.includes('editor.note.com') && waited < 15000) {
-                await page.waitForTimeout(1000);
-                waited += 1000;
-                currentUrl = page.url();
-                console.log(`Waiting for redirect... (${waited}ms) URL: ${currentUrl}`);
-              }
-              console.log('Final URL:', currentUrl);
-              await shot('step3_redirected');
-
-              // ── Step4: エディタのcontenteditable待ち ──
-              console.log('Step4: Waiting for editor contenteditable...');
-              await page.waitForFunction(() => {
-                return document.querySelectorAll('[contenteditable]').length > 0;
-              }, { timeout: 20000 }).catch(() => {
-                console.log('contenteditable wait timed out');
-              });
-              await page.waitForTimeout(2000);
-              await shot('step4_editor');
+              // 15秒待機してReactを描画させる
+              console.log('Waiting 15s for React to render...');
+              await page.waitForTimeout(15000);
+              await shot('02_after_wait');
 
               const editableCount = await page.evaluate(() =>
                 document.querySelectorAll('[contenteditable]').length
@@ -407,9 +384,12 @@ jobs:
               console.log(`Found ${editableCount} contenteditable elements`);
 
               if (editableCount === 0) {
-                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 500));
+                // ログインページに飛ばされていないか確認
+                const url = page.url();
+                console.log('Current URL:', url);
+                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
                 console.log('HTML snippet:', snippet);
-                throw new Error('Editor did not load.');
+                throw new Error(`Editor did not load. URL: ${url}`);
               }
 
               // ── ① タイトル入力 ──
@@ -421,7 +401,7 @@ jobs:
               await page.keyboard.press('Control+A');
               await page.keyboard.press('Backspace');
               await page.keyboard.type(data.title, { delay: 30 });
-              await shot('after_title');
+              await shot('03_after_title');
 
               // ── ② 本文入力 ──
               console.log('Filling body...');
@@ -434,7 +414,7 @@ jobs:
                 await page.waitForTimeout(500);
               }
               await page.keyboard.type(data.body, { delay: 10 });
-              await shot('after_body');
+              await shot('04_after_body');
               await page.waitForTimeout(2000);
 
               // ── ③ 保存 / 公開 ──
@@ -453,13 +433,13 @@ jobs:
                 if (await confirmBtn.count()) {
                   await confirmBtn.click();
                 }
-                await shot('after_publish');
+                await shot('05_after_publish');
               } else {
                 console.log('Saving draft...');
                 const saveBtn = page.getByRole('button', { name: /下書き保存|下書き|保存/i }).first();
                 await saveBtn.waitFor({ state: 'visible', timeout: 15000 });
                 await saveBtn.click();
-                await shot('after_save');
+                await shot('05_after_save');
               }
 
               await page.waitForTimeout(3000);
