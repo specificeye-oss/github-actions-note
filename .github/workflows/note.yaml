@@ -50,14 +50,102 @@ env:
   TZ: Asia/Tokyo
 
 jobs:
+  setup:
+    name: Setup Theme
+    runs-on: ubuntu-latest
+    outputs:
+      theme: ${{ steps.theme.outputs.theme }}
+      target: ${{ steps.theme.outputs.target }}
+      message: ${{ steps.theme.outputs.message }}
+      cta: ${{ steps.theme.outputs.cta }}
+      tags: ${{ steps.theme.outputs.tags }}
+      is_public: ${{ steps.theme.outputs.is_public }}
+      dry_run: ${{ steps.theme.outputs.dry_run }}
+    steps:
+      - name: Resolve theme
+        id: theme
+        run: |
+          # workflow_dispatch の場合はそのまま使う
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "theme=${{ github.event.inputs.theme }}" >> "$GITHUB_OUTPUT"
+            echo "target=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
+            echo "message=${{ github.event.inputs.message }}" >> "$GITHUB_OUTPUT"
+            echo "cta=${{ github.event.inputs.cta }}" >> "$GITHUB_OUTPUT"
+            echo "tags=${{ github.event.inputs.tags }}" >> "$GITHUB_OUTPUT"
+            echo "is_public=${{ github.event.inputs.is_public }}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          else
+            # スケジュール実行：曜日でテーマをローテーション
+            DAY=$(date +%u)  # 1=月 2=火 3=水 4=木 5=金 6=土 7=日
+            case $DAY in
+              1)
+                THEME="大阪マツエク モチがいい サロン"
+                TARGET="大阪でマツエクを探している20〜40代女性"
+                MESSAGE="大阪でモチのいいマツエクを見つけるポイントと、おすすめサロンの選び方"
+                CTA="LINEで無料カウンセリングを予約する"
+                TAGS="大阪マツエク,マツエク,まつげエクステ,大阪美容,モチいいマツエク"
+                ;;
+              2)
+                THEME="大阪まつげ パーマ 持ちがいい"
+                TARGET="まつげパーマを初めて検討している大阪在住の女性"
+                MESSAGE="まつげパーマは施術が早く、毎朝のメイク時間を大幅に短縮できる"
+                CTA="まつげパーマの料金・メニューをLINEで確認する"
+                TAGS="まつげパーマ,大阪まつげ,大阪美容,パリジェンヌ,まつ毛カール"
+                ;;
+              3)
+                THEME="LEDマツエク 大阪 安全 モチ"
+                TARGET="オーガニック・安全志向の大阪在住女性"
+                MESSAGE="LEDマツエクは従来より硬化時間が短く目への負担が少ない次世代まつげエクステ"
+                CTA="LEDマツエクの詳細・予約はこちら"
+                TAGS="LEDマツエク,大阪マツエク,まつげエクステ,最新マツエク,安全マツエク"
+                ;;
+              4)
+                THEME="大阪 眉毛 アイブロウ 美眉 サロン"
+                TARGET="眉毛の形・薄さに悩む大阪在住の女性"
+                MESSAGE="眉毛を整えるだけで顔の印象が変わる。大阪でおすすめの美眉サロンと選び方"
+                CTA="眉毛デザインの無料相談はLINEから"
+                TAGS="アイブロウ,眉毛サロン,大阪眉毛,美眉,眉デザイン"
+                ;;
+              5)
+                THEME="大阪マツエク 安い 高品質 コスパ"
+                TARGET="マツエクのコスパを重視する大阪在住の女性"
+                MESSAGE="安いだけでなく品質も大事。大阪でコスパ最強のマツエクサロンの見つけ方"
+                CTA="お得なクーポン・料金をLINEで確認する"
+                TAGS="大阪マツエク,マツエク安い,コスパマツエク,大阪美容,まつげエクステ"
+                ;;
+              6)
+                THEME="まつげエクステ 大阪 早い 当日予約"
+                TARGET="忙しくて時間がない大阪在住の働く女性"
+                MESSAGE="施術時間60分以内・当日予約OKのマツエクで、忙しい女性でも通いやすい"
+                CTA="当日予約はLINEから今すぐ確認"
+                TAGS="大阪マツエク,当日予約,時短マツエク,まつげエクステ,大阪美容"
+                ;;
+              7)
+                THEME="大阪マツエク まつげパーマ 眉毛 まとめ 比較"
+                TARGET="マツエク・まつパ・眉毛どれにするか迷っている大阪在住女性"
+                MESSAGE="マツエク・まつげパーマ・眉毛サロンそれぞれの特徴と向いている人を比較"
+                CTA="どれが自分に合うかLINEで相談する"
+                TAGS="大阪マツエク,まつげパーマ,アイブロウ,大阪美容,まつげ比較"
+                ;;
+            esac
+            echo "theme=$THEME" >> "$GITHUB_OUTPUT"
+            echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+            echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
+            echo "cta=$CTA" >> "$GITHUB_OUTPUT"
+            echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+            echo "is_public=true" >> "$GITHUB_OUTPUT"
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   research:
     name: Research (Tavily)
     runs-on: ubuntu-latest
+    needs: setup
     env:
       TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-      THEME: ${{ github.event.inputs.theme }}
-      TARGET: ${{ github.event.inputs.target }}
-      MESSAGE: ${{ github.event.inputs.message }}
+      THEME: ${{ needs.setup.outputs.theme }}
+      TARGET: ${{ needs.setup.outputs.target }}
+      MESSAGE: ${{ needs.setup.outputs.message }}
     outputs:
       research_b64: ${{ steps.collect.outputs.research_b64 }}
     steps:
@@ -72,7 +160,7 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || '大阪 マツエク';
+          const theme = process.env.THEME || '大阪マツエク';
           const target = process.env.TARGET || '';
           const message = process.env.MESSAGE || '';
 
@@ -124,14 +212,14 @@ jobs:
   write:
     name: Write (Claude)
     runs-on: ubuntu-latest
-    needs: research
+    needs: [setup, research]
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      THEME: ${{ github.event.inputs.theme }}
-      TARGET: ${{ github.event.inputs.target }}
-      MESSAGE: ${{ github.event.inputs.message }}
-      CTA: ${{ github.event.inputs.cta }}
-      TAGS: ${{ github.event.inputs.tags }}
+      THEME: ${{ needs.setup.outputs.theme }}
+      TARGET: ${{ needs.setup.outputs.target }}
+      MESSAGE: ${{ needs.setup.outputs.message }}
+      CTA: ${{ needs.setup.outputs.cta }}
+      TAGS: ${{ needs.setup.outputs.tags }}
       RESEARCH_B64: ${{ needs.research.outputs.research_b64 }}
     outputs:
       article_b64: ${{ steps.collect.outputs.article_b64 }}
@@ -156,6 +244,7 @@ jobs:
 
           const systemPrompt = `
           あなたは日本語のnote記事を書くプロの編集者です。
+          MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
           目的は、読みやすく、信頼感があり、行動につながるnote記事を作ることです。
           出力は必ずJSONのみ。
           形式:
@@ -180,9 +269,13 @@ jobs:
           - 日本語
           - 読みやすい自然な文章
           - 誇張しすぎない
-          - 見出しを使う
+          - 見出しを使う（H2・H3）
           - 最後にCTAを入れる
           - tags は配列で3〜5個
+          - MEO対策：「大阪」「地域名」を自然に文中に含める
+          - LLMO対策：「〜とは」「〜の選び方」「〜のポイント」など質問形式の見出しを使う
+          - キーワード「モチ」「早い」「安い」を自然に含める
+          - 文字数は1500〜2500文字
           `.trim();
 
           const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -316,12 +409,12 @@ jobs:
   post:
     name: Post to note.com (Playwright)
     runs-on: ubuntu-latest
-    needs: factcheck
-    if: ${{ github.event.inputs.dry_run == 'false' }}
+    needs: [setup, factcheck]
+    if: ${{ needs.setup.outputs.dry_run == 'false' }}
     env:
       NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
       FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
-      IS_PUBLIC: ${{ github.event.inputs.is_public }}
+      IS_PUBLIC: ${{ needs.setup.outputs.is_public }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -367,13 +460,11 @@ jobs:
             };
 
             try {
-              // editor.note.com に直接アクセス（note-state.jsonにeditor.note.comのCookieが入っている）
               console.log('Navigating to editor.note.com/new...');
               await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
               console.log('URL:', page.url());
               await shot('01_after_goto');
 
-              // 15秒待機してReactを描画させる
               console.log('Waiting 15s for React to render...');
               await page.waitForTimeout(15000);
               await shot('02_after_wait');
@@ -384,7 +475,6 @@ jobs:
               console.log(`Found ${editableCount} contenteditable elements`);
 
               if (editableCount === 0) {
-                // ログインページに飛ばされていないか確認
                 const url = page.url();
                 console.log('Current URL:', url);
                 const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
