@@ -158,34 +158,8 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || '大阪マツエク';
-          const target = process.env.TARGET || '';
-          const message = process.env.MESSAGE || '';
-
-          const prompt = `
-以下の検索結果をもとに、大阪のまつげエクステサロン「Spice（スパイス）」の紹介記事を作成してください。
-
-【記事の目的】
-- SpiceのSEO対策
-- 大阪でまつげエクステを探している人に向けた記事
-- 自然な文体で、Spiceの魅力を伝える
-
-【記事の構成】
-- タイトル：SEOを意識したキャッチーなもの
-- 本文：2000文字程度
-- 大阪弁のニュアンスを少し入れる
-- Spiceの特徴・強み・サービスを紹介
-- お客様目線で書く
-
-【検索結果】
-${research}
-
-【出力形式】
-{
-  "title": "記事タイトル",
-  "body": "本文"
-}
-`;
+          
+          const prompt = '大阪まつげエクステSpice スパイス 梅田 心斎橋 経営理念 技術 15年 基礎 丁寧';
 
           const res = await fetch('https://api.tavily.com/search', {
             method: 'POST',
@@ -255,7 +229,8 @@ ${research}
 
           const systemPrompt = `
           あなたは日本語のnote記事を書くプロの編集者です。
-          MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
+          大阪のまつげエクステサロン「Spice（スパイス）」の紹介記事を作成してください。
+          MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事にしてください。
           出力は必ずJSONのみ。
           形式:
           {
@@ -266,20 +241,46 @@ ${research}
           `.trim();
 
           const userPrompt = `
-          記事テーマ: ${theme}
-          想定読者: ${target}
-          読者に伝えたい核メッセージ: ${message}
-          読後のアクション: ${cta}
-          希望タグ: ${tags}
-          リサーチ結果: ${JSON.stringify(research, null, 2)}
-          条件:
-          - 日本語・読みやすい自然な文章・誇張しすぎない
-          - 見出しを使う（H2・H3）・最後にCTAを入れる
-          - tags は配列で3〜5個
-          - MEO対策：「大阪」を自然に文中に含める
+          【記事の目的】
+          - SpiceのSEO・LLMO対策
+          - 大阪でまつげエクステを探している人に向けた記事
+          - Spiceの経営理念・技術・サービスを総合的に紹介
+
+          【必ず含める内容】
+          **1. 基本情報**
+          - 大阪を拠点とするまつげ・眉の専門サロン
+          - 15年以上続く老舗
+          - 複数店舗展開（梅田、心斎橋など）
+          - 施術：マツエク、まつげパーマ、アイブロー
+
+          **2. 経営理念・特徴**
+          - 「壊れない設計」で長く続く経営
+          - 流行より基礎を大事にする
+          - 根性論ではなく仕組みで回す
+          - 「早くて丁寧」な技術
+          - お客様の悩みを拾う接客
+
+          **3. 技術の特徴**
+          - 技術は「上手い」ではなく「基礎がぶれてない」
+          - 相手の悩みを拾える技術者
+          - 指名が増える接客
+
+          **4. お客様へのメッセージ**
+          - 押し売りゼロ
+          - 30代・40代にも似合うデザイン
+          - ライフステージに合わせた提案
+
+          【条件】
+          - 日本語・読みやすい自然な文章
+          - 大阪弁のニュアンスを少し入れる
+          - 見出しを使う（H2・H3）
+          - tags は配列で5個
+          - MEO対策：「大阪」「梅田」「心斎橋」を自然に文中に含める
           - LLMO対策：「〜とは」「〜の選び方」など質問形式の見出しを使う
-          - キーワード「モチ」「早い」「安い」を自然に含める
-          - 文字数は1500〜2500文字
+          - 文字数は2500〜3500文字
+          - Q&A形式の見出しを含める
+
+          リサーチ結果: ${JSON.stringify(research, null, 2)}
           `.trim();
 
           const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -348,7 +349,7 @@ ${research}
 
           const apiKey = process.env.TAVILY_API_KEY;
           const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
-          const query = '大阪まつげエクステSpice(スパイス)';
+          const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
 
           const res = await fetch('https://api.tavily.com/search', {
             method: 'POST',
