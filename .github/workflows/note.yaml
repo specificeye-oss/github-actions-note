@@ -77,55 +77,33 @@ jobs:
             DAY=$(date +%u)
             case $DAY in
               1)
-                THEME="大阪マツエク モチがいい サロン"
-                TARGET="大阪でマツエクを探している20〜40代女性"
-                MESSAGE="大阪でモチのいいマツエクを見つけるポイントと、おすすめサロンの選び方"
-                CTA="LINEで無料カウンセリングを予約する"
-                TAGS="大阪マツエク,マツエク,まつげエクステ,大阪美容,モチいいマツエク"
+                THEME="心斎橋 マツエク SPICE LEDエクステ 持ちがいい"
                 ;;
               2)
-                THEME="大阪まつげ パーマ 持ちがいい"
-                TARGET="まつげパーマを初めて検討している大阪在住の女性"
-                MESSAGE="まつげパーマは施術が早く、毎朝のメイク時間を大幅に短縮できる"
-                CTA="まつげパーマの料金・メニューをLINEで確認する"
-                TAGS="まつげパーマ,大阪まつげ,大阪美容,パリジェンヌ,まつ毛カール"
+                THEME="梅田 マツエク SPICE 早い キレイ"
                 ;;
               3)
-                THEME="LEDマツエク 大阪 安全 モチ"
-                TARGET="オーガニック・安全志向の大阪在住女性"
-                MESSAGE="LEDマツエクは従来より硬化時間が短く目への負担が少ない次世代まつげエクステ"
-                CTA="LEDマツエクの詳細・予約はこちら"
-                TAGS="LEDマツエク,大阪マツエク,まつげエクステ,最新マツエク,安全マツエク"
+                THEME="なんば マツエク SPICE LED 安全"
                 ;;
               4)
-                THEME="大阪 眉毛 アイブロウ 美眉 サロン"
-                TARGET="眉毛の形・薄さに悩む大阪在住の女性"
-                MESSAGE="眉毛を整えるだけで顔の印象が変わる。大阪でおすすめの美眉サロンと選び方"
-                CTA="眉毛デザインの無料相談はLINEから"
-                TAGS="アイブロウ,眉毛サロン,大阪眉毛,美眉,眉デザイン"
+                THEME="天満橋 マツエク SPICE 持ちがいい"
                 ;;
               5)
-                THEME="大阪マツエク 安い 高品質 コスパ"
-                TARGET="マツエクのコスパを重視する大阪在住の女性"
-                MESSAGE="安いだけでなく品質も大事。大阪でコスパ最強のマツエクサロンの見つけ方"
-                CTA="お得なクーポン・料金をLINEで確認する"
-                TAGS="大阪マツエク,マツエク安い,コスパマツエク,大阪美容,まつげエクステ"
+                THEME="野田阪神 マツエク SPICE コスパ"
                 ;;
               6)
-                THEME="まつげエクステ 大阪 早い 当日予約"
-                TARGET="忙しくて時間がない大阪在住の働く女性"
-                MESSAGE="施術時間60分以内・当日予約OKのマツエクで、忙しい女性でも通いやすい"
-                CTA="当日予約はLINEから今すぐ確認"
-                TAGS="大阪マツエク,当日予約,時短マツエク,まつげエクステ,大阪美容"
+                THEME="なかもず マツエク SPICE 当日予約"
                 ;;
               7)
-                THEME="大阪マツエク まつげパーマ 眉毛 まとめ 比較"
-                TARGET="マツエク・まつパ・眉毛どれにするか迷っている大阪在住女性"
-                MESSAGE="マツエク・まつげパーマ・眉毛サロンそれぞれの特徴と向いている人を比較"
-                CTA="どれが自分に合うかLINEで相談する"
-                TAGS="大阪マツエク,まつげパーマ,アイブロウ,大阪美容,まつげ比較"
+                THEME="大阪 マツエク SPICE LED フラット 比較"
                 ;;
             esac
+
+            TARGET="忙しい20〜30代女性でマツエクの持ちや仕上がりに悩んでいる人"
+            MESSAGE="SPICEが選ばれる理由とLEDマツエクの持ちの良さ・仕上がりについて"
+            CTA="LINEで予約・無料カウンセリングはこちら"
+            TAGS="SPICE,大阪マツエク,心斎橋マツエク,梅田マツエク,LEDマツエク"
+
             echo "theme=$THEME" >> "$GITHUB_OUTPUT"
             echo "target=$TARGET" >> "$GITHUB_OUTPUT"
             echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
@@ -135,72 +113,10 @@ jobs:
             echo "dry_run=false" >> "$GITHUB_OUTPUT"
           fi
 
-  research:
-    name: Research (Tavily)
-    runs-on: ubuntu-latest
-    needs: setup
-    env:
-      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-      THEME: ${{ needs.setup.outputs.theme }}
-      TARGET: ${{ needs.setup.outputs.target }}
-      MESSAGE: ${{ needs.setup.outputs.message }}
-    outputs:
-      research_b64: ${{ steps.collect.outputs.research_b64 }}
-    steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Research with Tavily
-        run: |
-          cat > research.mjs <<'EOF'
-          import fs from 'fs';
-
-          const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || '大阪マツエク';
-          const target = process.env.TARGET || '';
-          const message = process.env.MESSAGE || '';
-
-          const prompt = `${theme} ${target} ${message}`.trim();
-
-          const res = await fetch('https://api.tavily.com/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              api_key: apiKey,
-              query: prompt,
-              search_depth: 'advanced',
-              topic: 'general',
-              max_results: 5,
-              include_answer: true
-            })
-          });
-
-          if (!res.ok) { console.error(await res.text()); process.exit(1); }
-
-          const json = await res.json();
-          fs.writeFileSync('research.json', JSON.stringify(json, null, 2));
-          console.log('research saved');
-          EOF
-
-          node research.mjs
-
-      - name: Collect research
-        id: collect
-        run: |
-          echo "research_b64=$(base64 -w 0 research.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload research artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: research-json
-          path: research.json
-
   write:
     name: Write (Claude)
     runs-on: ubuntu-latest
-    needs: [setup, research]
+    needs: setup
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       THEME: ${{ needs.setup.outputs.theme }}
@@ -208,7 +124,6 @@ jobs:
       MESSAGE: ${{ needs.setup.outputs.message }}
       CTA: ${{ needs.setup.outputs.cta }}
       TAGS: ${{ needs.setup.outputs.tags }}
-      RESEARCH_B64: ${{ needs.research.outputs.research_b64 }}
     outputs:
       article_b64: ${{ steps.collect.outputs.article_b64 }}
     steps:
@@ -223,41 +138,32 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.ANTHROPIC_API_KEY;
-          const theme = process.env.THEME || '';
-          const target = process.env.TARGET || '';
-          const message = process.env.MESSAGE || '';
-          const cta = process.env.CTA || '';
-          const tags = process.env.TAGS || '';
-          const research = JSON.parse(Buffer.from(process.env.RESEARCH_B64, 'base64').toString('utf8'));
+          const theme = process.env.THEME;
+          const target = process.env.TARGET;
+          const message = process.env.MESSAGE;
+          const cta = process.env.CTA;
+          const tags = process.env.TAGS;
 
           const systemPrompt = `
-          あなたは日本語のnote記事を書くプロの編集者です。
-          MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
-          出力は必ずJSONのみ。
-          形式:
-          {
-            "title": "記事タイトル",
-            "body": "note本文。見出しや改行を含む",
-            "tags": ["タグ1","タグ2","タグ3"]
-          }
-          `.trim();
+あなたは大阪で15年以上続くアイサロン「SPICE」のオーナーです。
+SEO・MEO・LLMOに強い記事を書いてください。
+出力はJSONのみ。
+`;
 
           const userPrompt = `
-          記事テーマ: ${theme}
-          想定読者: ${target}
-          読者に伝えたい核メッセージ: ${message}
-          読後のアクション: ${cta}
-          希望タグ: ${tags}
-          リサーチ結果: ${JSON.stringify(research, null, 2)}
-          条件:
-          - 日本語・読みやすい自然な文章・誇張しすぎない
-          - 見出しを使う（H2・H3）・最後にCTAを入れる
-          - tags は配列で3〜5個
-          - MEO対策：「大阪」を自然に文中に含める
-          - LLMO対策：「〜とは」「〜の選び方」など質問形式の見出しを使う
-          - キーワード「モチ」「早い」「安い」を自然に含める
-          - 文字数は1500〜2500文字
-          `.trim();
+テーマ: ${theme}
+読者: ${target}
+メッセージ: ${message}
+CTA: ${cta}
+
+条件:
+・必ずSPICEを主役にする
+・他店紹介は禁止
+・エリア（心斎橋・梅田・なんば・天満橋・野田阪神・なかもず）を自然に入れる
+・実体験（1週間持ったなど）を入れる
+・「SPICEとは〇〇のサロンです」を入れる
+・1500〜2000文字
+`;
 
           const res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -274,18 +180,9 @@ jobs:
             })
           });
 
-          if (!res.ok) { console.error(await res.text()); process.exit(1); }
-
           const json = await res.json();
-          const text = (json.content?.[0]?.text || '').replace(/```json|```/g, '').trim();
-          fs.writeFileSync('article_raw.txt', text);
-
-          let parsed;
-          try { parsed = JSON.parse(text); }
-          catch { console.error('Claude output was not valid JSON'); console.error(text); process.exit(1); }
-
-          fs.writeFileSync('article.json', JSON.stringify(parsed, null, 2));
-          console.log('article saved');
+          const text = json.content[0].text.replace(/```json|```/g, '').trim();
+          fs.writeFileSync('article.json', text);
           EOF
 
           node write.mjs
@@ -294,286 +191,3 @@ jobs:
         id: collect
         run: |
           echo "article_b64=$(base64 -w 0 article.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload article artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: article-json
-          path: |
-            article.json
-            article_raw.txt
-
-  factcheck:
-    name: Fact-check (Tavily)
-    runs-on: ubuntu-latest
-    needs: write
-    env:
-      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-      ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
-    outputs:
-      final_b64: ${{ steps.collect.outputs.final_b64 }}
-    steps:
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Fact-check article
-        run: |
-          cat > factcheck.mjs <<'EOF'
-          import fs from 'fs';
-
-          const apiKey = process.env.TAVILY_API_KEY;
-          const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
-          const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
-
-          const res = await fetch('https://api.tavily.com/search', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              api_key: apiKey,
-              query,
-              search_depth: 'advanced',
-              topic: 'general',
-              max_results: 5,
-              include_answer: true
-            })
-          });
-
-          if (!res.ok) { console.error(await res.text()); process.exit(1); }
-
-          const fact = await res.json();
-          fs.writeFileSync('final_article.json', JSON.stringify({ ...article, factcheck: fact }, null, 2));
-          console.log('final article saved');
-          EOF
-
-          node factcheck.mjs
-
-      - name: Collect final article
-        id: collect
-        run: |
-          echo "final_b64=$(base64 -w 0 final_article.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload final article artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: final-article-json
-          path: final_article.json
-
-  post:
-    name: Post to note.com (Playwright)
-    runs-on: ubuntu-latest
-    needs: [setup, factcheck]
-    if: ${{ needs.setup.outputs.dry_run == 'false' }}
-    env:
-      NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-      FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
-      IS_PUBLIC: ${{ needs.setup.outputs.is_public }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Playwright
-        run: |
-          npm init -y
-          npm install playwright
-          npx playwright install --with-deps chromium
-
-      - name: Restore storage state
-        run: |
-          cat > note-state.json <<'EOF'
-          ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-          EOF
-
-      - name: Post to note
-        run: |
-          cat > post.mjs <<'EOF'
-          import { chromium } from 'playwright';
-
-          async function main() {
-            const data = JSON.parse(Buffer.from(process.env.FINAL_B64, 'base64').toString('utf8'));
-            const statePath = './note-state.json';
-            const isPublic = process.env.IS_PUBLIC === 'true';
-
-            const browser = await chromium.launch({ headless: true });
-            const context = await browser.newContext({
-              storageState: statePath,
-              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            });
-            const page = await context.newPage();
-
-            let step = 0;
-            const shot = async (label) => {
-              await page.screenshot({ path: `debug_${String(++step).padStart(2,'0')}_${label}.png`, fullPage: true });
-              console.log(`[screenshot] ${label}`);
-            };
-
-            try {
-              console.log('Navigating to editor.note.com/new...');
-              await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
-              console.log('URL:', page.url());
-
-              console.log('Waiting 15s for React to render...');
-              await page.waitForTimeout(15000);
-              await shot('01_after_wait');
-
-              const editableCount = await page.evaluate(() =>
-                document.querySelectorAll('[contenteditable]').length
-              );
-              console.log(`Found ${editableCount} contenteditable elements`);
-
-              if (editableCount === 0) {
-                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
-                console.log('HTML snippet:', snippet);
-                throw new Error(`Editor did not load. URL: ${page.url()}`);
-              }
-
-              // ── ① タイトル入力 ──
-              console.log('Filling title...');
-              const allEditables = page.locator('[contenteditable]');
-              await allEditables.nth(0).click();
-              await page.waitForTimeout(300);
-              await page.keyboard.press('Control+A');
-              await page.keyboard.press('Backspace');
-              await page.keyboard.type(data.title, { delay: 30 });
-              await shot('02_after_title');
-
-              // ── ② 本文入力 ──
-              console.log('Filling body...');
-              const count = await allEditables.count();
-              if (count >= 2) {
-                await allEditables.nth(1).click();
-              } else {
-                await page.keyboard.press('Tab');
-              }
-              await page.waitForTimeout(300);
-              await page.keyboard.type(data.body, { delay: 10 });
-              await shot('03_after_body');
-              await page.waitForTimeout(2000);
-
-              // ── ③ ボタンを全部ログ出力してから保存・公開 ──
-              const allButtons = await page.evaluate(() =>
-                Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
-              );
-              console.log('[all buttons]', JSON.stringify(allButtons));
-              await shot('04_before_save');
-
-              if (isPublic) {
-                // 公開ボタンを柔軟に探す
-                const publishPatterns = [
-                  /公開する/,
-                  /公開設定/,
-                  /投稿する/,
-                  /publish/i,
-                  /post/i
-                ];
-
-                let clicked = false;
-                for (const pattern of publishPatterns) {
-                  const btn = page.getByRole('button', { name: pattern }).first();
-                  if (await btn.count() > 0) {
-                    console.log(`Clicking publish button: ${pattern}`);
-                    await btn.click();
-                    clicked = true;
-                    break;
-                  }
-                }
-
-                if (!clicked) {
-                  // 最後の手段：ボタンのテキストで直接探す
-                  const btn = page.locator('button').filter({ hasText: /公開|投稿|publish/i }).first();
-                  if (await btn.count() > 0) {
-                    await btn.click();
-                    clicked = true;
-                  }
-                }
-
-                if (!clicked) {
-                  throw new Error('Publish button not found. Check screenshots and button list above.');
-                }
-
-                await page.waitForTimeout(3000);
-                await shot('05_after_publish_click');
-
-                // 確認ダイアログが出る場合
-                const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
-                for (const pattern of confirmPatterns) {
-                  const btn = page.getByRole('button', { name: pattern }).first();
-                  if (await btn.count() > 0) {
-                    console.log(`Clicking confirm button: ${pattern}`);
-                    await btn.click();
-                    break;
-                  }
-                }
-                await shot('06_after_confirm');
-
-              } else {
-                // 下書き保存
-                const draftPatterns = [
-                  /下書き保存/,
-                  /下書き/,
-                  /保存/,
-                  /save/i
-                ];
-
-                let clicked = false;
-                for (const pattern of draftPatterns) {
-                  const btn = page.getByRole('button', { name: pattern }).first();
-                  if (await btn.count() > 0) {
-                    console.log(`Clicking draft button: ${pattern}`);
-                    await btn.click();
-                    clicked = true;
-                    break;
-                  }
-                }
-
-                if (!clicked) {
-                  const btn = page.locator('button').filter({ hasText: /下書き|保存|save/i }).first();
-                  if (await btn.count() > 0) {
-                    await btn.click();
-                    clicked = true;
-                  }
-                }
-
-                if (!clicked) {
-                  throw new Error('Save button not found. Check screenshots and button list above.');
-                }
-
-                await shot('05_after_save');
-              }
-
-              await page.waitForTimeout(3000);
-              console.log('Done.');
-
-            } catch (err) {
-              await shot('error');
-              console.error('Post failed:', err.message);
-              throw err;
-            } finally {
-              await context.storageState({ path: statePath });
-              await browser.close();
-            }
-          }
-
-          main();
-          EOF
-
-          node post.mjs
-
-      - name: Upload debug screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-screenshots
-          path: debug_*.png
-
-      - name: Upload updated state
-        uses: actions/upload-artifact@v4
-        with:
-          name: updated-note-state
-          path: note-state.json
