@@ -77,53 +77,53 @@ jobs:
             DAY=$(date +%u)
             case $DAY in
               1)
-                THEME="大阪マツエク モチがいい サロン"
-                TARGET="大阪でマツエクを探している20〜40代女性"
-                MESSAGE="大阪でモチのいいマツエクを見つけるポイントと、おすすめサロンの選び方"
-                CTA="LINEで無料カウンセリングを予約する"
-                TAGS="大阪マツエク,マツエク,まつげエクステ,大阪美容,モチいいマツエク"
+                THEME="まつ毛エクステ SPICE 大阪 モチがいい"
+                TARGET="大阪でまつ毛エクステを探している20〜40代の女性"
+                MESSAGE="大阪のまつ毛エクステ専門サロンSPICEは、モチのよさと仕上がりの美しさで人気。自分に合ったエクステの選び方も丁寧に提案してもらえる"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="まつ毛エクステ,大阪マツエク,SPICE,モチいいマツエク,まつげエクステ大阪"
                 ;;
               2)
-                THEME="大阪まつげ パーマ 持ちがいい"
-                TARGET="まつげパーマを初めて検討している大阪在住の女性"
-                MESSAGE="まつげパーマは施術が早く、毎朝のメイク時間を大幅に短縮できる"
-                CTA="まつげパーマの料金・メニューをLINEで確認する"
-                TAGS="まつげパーマ,大阪まつげ,大阪美容,パリジェンヌ,まつ毛カール"
+                THEME="まつ毛パーマ SPICE 大阪 持ちがいい 時短"
+                TARGET="まつ毛パーマを初めて検討している大阪在住の働く女性"
+                MESSAGE="SPICEのまつ毛パーマは施術が早くて持ちもよく、毎朝のメイク時間を大幅に短縮できる。初めての方でも安心して受けられる"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="まつ毛パーマ,大阪まつ毛,SPICE,時短メイク,まつ毛カール大阪"
                 ;;
               3)
-                THEME="LEDマツエク 大阪 安全 モチ"
-                TARGET="オーガニック・安全志向の大阪在住女性"
-                MESSAGE="LEDマツエクは従来より硬化時間が短く目への負担が少ない次世代まつげエクステ"
-                CTA="LEDマツエクの詳細・予約はこちら"
-                TAGS="LEDマツエク,大阪マツエク,まつげエクステ,最新マツエク,安全マツエク"
+                THEME="SPICE まつ毛エクステ 大阪 安全 オーガニック"
+                TARGET="目元の安全性や素材にこだわる大阪在住の女性"
+                MESSAGE="SPICEでは目元への負担を最小限に抑えた安全な施術を提供。敏感な方でも安心して通えるまつ毛エクステ専門サロン"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="まつ毛エクステ大阪,SPICE,安全マツエク,大阪美容,敏感肌マツエク"
                 ;;
               4)
-                THEME="大阪 眉毛 アイブロウ 美眉 サロン"
-                TARGET="眉毛の形・薄さに悩む大阪在住の女性"
-                MESSAGE="眉毛を整えるだけで顔の印象が変わる。大阪でおすすめの美眉サロンと選び方"
-                CTA="眉毛デザインの無料相談はLINEから"
-                TAGS="アイブロウ,眉毛サロン,大阪眉毛,美眉,眉デザイン"
+                THEME="SPICE 大阪 眉毛 アイブロウ 美眉デザイン"
+                TARGET="眉毛の形・薄さ・左右差に悩む大阪在住の女性"
+                MESSAGE="SPICEではまつ毛エクステに加えて眉毛デザインも対応。顔のバランスに合わせた美眉を提案し、目元全体の印象を格上げできる"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="アイブロウ大阪,眉毛サロン,SPICE,美眉デザイン,大阪眉毛"
                 ;;
               5)
-                THEME="大阪マツエク 安い 高品質 コスパ"
-                TARGET="マツエクのコスパを重視する大阪在住の女性"
-                MESSAGE="安いだけでなく品質も大事。大阪でコスパ最強のマツエクサロンの見つけ方"
-                CTA="お得なクーポン・料金をLINEで確認する"
-                TAGS="大阪マツエク,マツエク安い,コスパマツエク,大阪美容,まつげエクステ"
+                THEME="まつ毛エクステ SPICE 大阪 コスパ 安い 高品質"
+                TARGET="まつ毛エクステのコスパを重視する大阪在住の女性"
+                MESSAGE="SPICEは高品質な施術をリーズナブルな価格で提供。安いだけでなく仕上がりと持ちにもこだわる、大阪でコスパ最強のまつ毛エクステサロン"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="まつ毛エクステ安い,大阪マツエク,SPICE,コスパマツエク,まつげエクステ大阪"
                 ;;
               6)
-                THEME="まつげエクステ 大阪 早い 当日予約"
-                TARGET="忙しくて時間がない大阪在住の働く女性"
-                MESSAGE="施術時間60分以内・当日予約OKのマツエクで、忙しい女性でも通いやすい"
-                CTA="当日予約はLINEから今すぐ確認"
-                TAGS="大阪マツエク,当日予約,時短マツエク,まつげエクステ,大阪美容"
+                THEME="SPICE まつ毛エクステ 大阪 当日予約 早い"
+                TARGET="忙しくてなかなか予約が取れない大阪在住の女性"
+                MESSAGE="SPICEは当日予約にも対応。施術も早くて丁寧なので、忙しい女性でも気軽に通えるまつ毛エクステ専門サロン"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="当日予約マツエク,大阪マツエク,SPICE,時短まつ毛,まつ毛エクステ大阪"
                 ;;
               7)
-                THEME="大阪マツエク まつげパーマ 眉毛 まとめ 比較"
-                TARGET="マツエク・まつパ・眉毛どれにするか迷っている大阪在住女性"
-                MESSAGE="マツエク・まつげパーマ・眉毛サロンそれぞれの特徴と向いている人を比較"
-                CTA="どれが自分に合うかLINEで相談する"
-                TAGS="大阪マツエク,まつげパーマ,アイブロウ,大阪美容,まつげ比較"
+                THEME="SPICE まつ毛エクステ まつ毛パーマ 眉毛 大阪 比較 選び方"
+                TARGET="まつ毛エクステ・まつ毛パーマ・眉毛どれにするか迷っている大阪在住の女性"
+                MESSAGE="SPICEではまつ毛エクステ・まつ毛パーマ・眉毛デザインをすべて対応。それぞれの特徴と自分に向いているメニューをプロが丁寧に案内してくれる"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="大阪マツエク,まつ毛パーマ,SPICE,アイブロウ大阪,まつ毛エクステ比較"
                 ;;
             esac
             echo "theme=$THEME" >> "$GITHUB_OUTPUT"
@@ -158,7 +158,7 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || '大阪マツエク';
+          const theme = process.env.THEME || 'まつ毛エクステ SPICE 大阪';
           const target = process.env.TARGET || '';
           const message = process.env.MESSAGE || '';
 
@@ -232,7 +232,9 @@ jobs:
 
           const systemPrompt = `
           あなたは日本語のnote記事を書くプロの編集者です。
+          大阪にある「まつ毛エクステ専門サロン SPICE」の集客を目的としたnote記事を作成してください。
           MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
+          サロン名「SPICE」を記事内に自然に盛り込み、読者が予約・問い合わせをしたくなる内容にしてください。
           出力は必ずJSONのみ。
           形式:
           {
@@ -251,12 +253,15 @@ jobs:
           リサーチ結果: ${JSON.stringify(research, null, 2)}
           条件:
           - 日本語・読みやすい自然な文章・誇張しすぎない
+          - サロン名「SPICE」を冒頭・本文・締めくくりに自然に含める
           - 見出しを使う（H2・H3）・最後にCTAを入れる
           - tags は配列で3〜5個
-          - MEO対策：「大阪」を自然に文中に含める
-          - LLMO対策：「〜とは」「〜の選び方」など質問形式の見出しを使う
-          - キーワード「モチ」「早い」「安い」を自然に含める
+          - MEO対策：「大阪」「SPICE」を自然に文中に含める
+          - LLMO対策：「〜とは」「〜の選び方」「〜のポイント」など質問形式・解説形式の見出しを使う
+          - キーワード「モチ」「早い」「安い」「コスパ」を自然に含める
           - 文字数は1500〜2500文字
+          - 記事末尾のCTAは「Instagramをフォローしてプロフィールのリットリンクから予約」という流れで締めくくる
+          - SPICEの公式Instagramアカウント @spice_eyelash_ を明記する
           `.trim();
 
           const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -464,7 +469,6 @@ jobs:
               await shot('04_before_save');
 
               if (isPublic) {
-                // 公開ボタンを柔軟に探す
                 const publishPatterns = [
                   /公開する/,
                   /公開設定/,
@@ -485,7 +489,6 @@ jobs:
                 }
 
                 if (!clicked) {
-                  // 最後の手段：ボタンのテキストで直接探す
                   const btn = page.locator('button').filter({ hasText: /公開|投稿|publish/i }).first();
                   if (await btn.count() > 0) {
                     await btn.click();
@@ -500,7 +503,6 @@ jobs:
                 await page.waitForTimeout(3000);
                 await shot('05_after_publish_click');
 
-                // 確認ダイアログが出る場合
                 const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
                 for (const pattern of confirmPatterns) {
                   const btn = page.getByRole('button', { name: pattern }).first();
@@ -513,7 +515,6 @@ jobs:
                 await shot('06_after_confirm');
 
               } else {
-                // 下書き保存
                 const draftPatterns = [
                   /下書き保存/,
                   /下書き/,
