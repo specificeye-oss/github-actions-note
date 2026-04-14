@@ -77,53 +77,53 @@ jobs:
             DAY=$(date +%u)
             case $DAY in
               1)
-                THEME="まつ毛エクステ SPICE 大阪 モチがいい"
+                THEME="まつ毛エクステ マツエクspice 大阪 モチがいい"
                 TARGET="大阪でまつ毛エクステを探している20〜40代の女性"
-                MESSAGE="大阪のまつ毛エクステ専門サロンSPICEは、モチのよさと仕上がりの美しさで人気。自分に合ったエクステの選び方も丁寧に提案してもらえる"
+                MESSAGE="大阪のまつ毛エクステ専門サロンマツエクspiceは、モチのよさと仕上がりの美しさで人気。自分に合ったエクステの選び方も丁寧に提案してもらえる"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="まつ毛エクステ,大阪マツエク,SPICE,モチいいマツエク,まつげエクステ大阪"
+                TAGS="まつ毛エクステ,大阪マツエク,マツエクspice,モチいいマツエク,まつげエクステ大阪"
                 ;;
               2)
-                THEME="まつ毛パーマ SPICE 大阪 持ちがいい 時短"
+                THEME="まつ毛パーマ マツエクspice 大阪 持ちがいい 時短"
                 TARGET="まつ毛パーマを初めて検討している大阪在住の働く女性"
-                MESSAGE="SPICEのまつ毛パーマは施術が早くて持ちもよく、毎朝のメイク時間を大幅に短縮できる。初めての方でも安心して受けられる"
+                MESSAGE="マツエクspiceのまつ毛パーマは施術が早くて持ちもよく、毎朝のメイク時間を大幅に短縮できる。初めての方でも安心して受けられる"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="まつ毛パーマ,大阪まつ毛,SPICE,時短メイク,まつ毛カール大阪"
+                TAGS="まつ毛パーマ,大阪まつ毛,マツエクspice,時短メイク,まつ毛カール大阪"
                 ;;
               3)
-                THEME="SPICE まつ毛エクステ 大阪 安全 オーガニック"
+                THEME="マツエクspice まつ毛エクステ 大阪 安全 オーガニック"
                 TARGET="目元の安全性や素材にこだわる大阪在住の女性"
-                MESSAGE="SPICEでは目元への負担を最小限に抑えた安全な施術を提供。敏感な方でも安心して通えるまつ毛エクステ専門サロン"
+                MESSAGE="マツエクspiceでは目元への負担を最小限に抑えた安全な施術を提供。敏感な方でも安心して通えるまつ毛エクステ専門サロン"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="まつ毛エクステ大阪,SPICE,安全マツエク,大阪美容,敏感肌マツエク"
+                TAGS="まつ毛エクステ大阪,マツエクspice,安全マツエク,大阪美容,敏感肌マツエク"
                 ;;
               4)
-                THEME="SPICE 大阪 眉毛 アイブロウ 美眉デザイン"
+                THEME="マツエクspice 大阪 眉毛 アイブロウ 美眉デザイン"
                 TARGET="眉毛の形・薄さ・左右差に悩む大阪在住の女性"
-                MESSAGE="SPICEではまつ毛エクステに加えて眉毛デザインも対応。顔のバランスに合わせた美眉を提案し、目元全体の印象を格上げできる"
+                MESSAGE="マツエクspiceではまつ毛エクステに加えて眉毛デザインも対応。顔のバランスに合わせた美眉を提案し、目元全体の印象を格上げできる"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="アイブロウ大阪,眉毛サロン,SPICE,美眉デザイン,大阪眉毛"
+                TAGS="アイブロウ大阪,眉毛サロン,マツエクspice,美眉デザイン,大阪眉毛"
                 ;;
               5)
-                THEME="まつ毛エクステ SPICE 大阪 コスパ 安い 高品質"
+                THEME="まつ毛エクステ マツエクspice 大阪 コスパ 安い 高品質"
                 TARGET="まつ毛エクステのコスパを重視する大阪在住の女性"
-                MESSAGE="SPICEは高品質な施術をリーズナブルな価格で提供。安いだけでなく仕上がりと持ちにもこだわる、大阪でコスパ最強のまつ毛エクステサロン"
+                MESSAGE="マツエクspiceは高品質な施術をリーズナブルな価格で提供。安いだけでなく仕上がりと持ちにもこだわる、大阪でコスパ最強のまつ毛エクステサロン"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="まつ毛エクステ安い,大阪マツエク,SPICE,コスパマツエク,まつげエクステ大阪"
+                TAGS="まつ毛エクステ安い,大阪マツエク,マツエクspice,コスパマツエク,まつげエクステ大阪"
                 ;;
               6)
-                THEME="SPICE まつ毛エクステ 大阪 当日予約 早い"
+                THEME="マツエクspice まつ毛エクステ 大阪 当日予約 早い"
                 TARGET="忙しくてなかなか予約が取れない大阪在住の女性"
-                MESSAGE="SPICEは当日予約にも対応。施術も早くて丁寧なので、忙しい女性でも気軽に通えるまつ毛エクステ専門サロン"
+                MESSAGE="マツエクspiceは当日予約にも対応。施術も早くて丁寧なので、忙しい女性でも気軽に通えるまつ毛エクステ専門サロン"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="当日予約マツエク,大阪マツエク,SPICE,時短まつ毛,まつ毛エクステ大阪"
+                TAGS="当日予約マツエク,大阪マツエク,マツエクspice,時短まつ毛,まつ毛エクステ大阪"
                 ;;
               7)
-                THEME="SPICE まつ毛エクステ まつ毛パーマ 眉毛 大阪 比較 選び方"
+                THEME="マツエクspice まつ毛エクステ まつ毛パーマ 眉毛 大阪 比較 選び方"
                 TARGET="まつ毛エクステ・まつ毛パーマ・眉毛どれにするか迷っている大阪在住の女性"
-                MESSAGE="SPICEではまつ毛エクステ・まつ毛パーマ・眉毛デザインをすべて対応。それぞれの特徴と自分に向いているメニューをプロが丁寧に案内してくれる"
+                MESSAGE="マツエクspiceではまつ毛エクステ・まつ毛パーマ・眉毛デザインをすべて対応。それぞれの特徴と自分に向いているメニューをプロが丁寧に案内してくれる"
                 CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
-                TAGS="大阪マツエク,まつ毛パーマ,SPICE,アイブロウ大阪,まつ毛エクステ比較"
+                TAGS="大阪マツエク,まつ毛パーマ,マツエクspice,アイブロウ大阪,まつ毛エクステ比較"
                 ;;
             esac
             echo "theme=$THEME" >> "$GITHUB_OUTPUT"
@@ -158,7 +158,7 @@ jobs:
           import fs from 'fs';
 
           const apiKey = process.env.TAVILY_API_KEY;
-          const theme = process.env.THEME || 'まつ毛エクステ SPICE 大阪';
+          const theme = process.env.THEME || 'まつ毛エクステ マツエクspice 大阪';
           const target = process.env.TARGET || '';
           const message = process.env.MESSAGE || '';
 
@@ -232,9 +232,9 @@ jobs:
 
           const systemPrompt = `
           あなたは日本語のnote記事を書くプロの編集者です。
-          大阪にある「まつ毛エクステ専門サロン SPICE」の集客を目的としたnote記事を作成してください。
+          大阪にある「まつ毛エクステ専門サロン マツエクspice」の集客を目的としたnote記事を作成してください。
           MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
-          サロン名「SPICE」を記事内に自然に盛り込み、読者が予約・問い合わせをしたくなる内容にしてください。
+          サロン名「マツエクspice」を記事内に自然に盛り込み、読者が予約・問い合わせをしたくなる内容にしてください。
           出力は必ずJSONのみ。
           形式:
           {
@@ -253,15 +253,15 @@ jobs:
           リサーチ結果: ${JSON.stringify(research, null, 2)}
           条件:
           - 日本語・読みやすい自然な文章・誇張しすぎない
-          - サロン名「SPICE」を冒頭・本文・締めくくりに自然に含める
+          - サロン名「マツエクspice」を冒頭・本文・締めくくりに自然に含める
           - 見出しを使う（H2・H3）・最後にCTAを入れる
           - tags は配列で3〜5個
-          - MEO対策：「大阪」「SPICE」を自然に文中に含める
+          - MEO対策：「大阪」「マツエクspice」を自然に文中に含める
           - LLMO対策：「〜とは」「〜の選び方」「〜のポイント」など質問形式・解説形式の見出しを使う
           - キーワード「モチ」「早い」「安い」「コスパ」を自然に含める
           - 文字数は1500〜2500文字
           - 記事末尾のCTAは「Instagramをフォローしてプロフィールのリットリンクから予約」という流れで締めくくる
-          - SPICEの公式Instagramアカウント @spice_eyelash_ を明記する
+          - マツエクspiceの公式Instagramアカウント @spice_eyelash_ を明記する
           `.trim();
 
           const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -418,6 +418,40 @@ jobs:
               console.log(`[screenshot] ${label}`);
             };
 
+            // ── モーダルを閉じるヘルパー関数 ──
+            const dismissModal = async () => {
+              try {
+                const modal = page.locator('div.ReactModalPortal');
+                const visible = await modal.isVisible().catch(() => false);
+                if (visible) {
+                  console.log('Modal detected, dismissing...');
+                  // まずESCキーで閉じる
+                  await page.keyboard.press('Escape');
+                  await page.waitForTimeout(1000);
+                  // ESCで閉じない場合は閉じるボタンを探す
+                  const closePatterns = [/閉じる/, /キャンセル/, /スキップ/, /後で/, /close/i, /skip/i, /cancel/i];
+                  for (const pattern of closePatterns) {
+                    const btn = modal.getByRole('button', { name: pattern }).first();
+                    if (await btn.count() > 0) {
+                      console.log(`Closing modal with button: ${pattern}`);
+                      await btn.click();
+                      await page.waitForTimeout(500);
+                      break;
+                    }
+                  }
+                  // それでも残っていたら最初のボタンを押す
+                  const firstBtn = modal.locator('button').last();
+                  if (await firstBtn.count() > 0 && await modal.isVisible().catch(() => false)) {
+                    console.log('Clicking last button in modal as fallback');
+                    await firstBtn.click();
+                    await page.waitForTimeout(500);
+                  }
+                }
+              } catch (e) {
+                console.log('dismissModal skipped:', e.message);
+              }
+            };
+
             try {
               console.log('Navigating to editor.note.com/new...');
               await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
@@ -426,6 +460,10 @@ jobs:
               console.log('Waiting 15s for React to render...');
               await page.waitForTimeout(15000);
               await shot('01_after_wait');
+
+              // ── ★ モーダルを閉じる（ページ読み込み直後） ──
+              await dismissModal();
+              await shot('02_after_dismiss_modal');
 
               const editableCount = await page.evaluate(() =>
                 document.querySelectorAll('[contenteditable]').length
@@ -446,7 +484,7 @@ jobs:
               await page.keyboard.press('Control+A');
               await page.keyboard.press('Backspace');
               await page.keyboard.type(data.title, { delay: 30 });
-              await shot('02_after_title');
+              await shot('03_after_title');
 
               // ── ② 本文入力 ──
               console.log('Filling body...');
@@ -458,7 +496,7 @@ jobs:
               }
               await page.waitForTimeout(300);
               await page.keyboard.type(data.body, { delay: 10 });
-              await shot('03_after_body');
+              await shot('04_after_body');
               await page.waitForTimeout(2000);
 
               // ── ③ ボタンを全部ログ出力してから保存・公開 ──
@@ -466,7 +504,10 @@ jobs:
                 Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
               );
               console.log('[all buttons]', JSON.stringify(allButtons));
-              await shot('04_before_save');
+
+              // ── ★ モーダルを閉じる（保存・公開ボタン押す前） ──
+              await dismissModal();
+              await shot('05_before_save');
 
               if (isPublic) {
                 const publishPatterns = [
@@ -501,7 +542,10 @@ jobs:
                 }
 
                 await page.waitForTimeout(3000);
-                await shot('05_after_publish_click');
+                await shot('06_after_publish_click');
+
+                // ── ★ モーダルを閉じる（確認ダイアログが別のモーダルの場合） ──
+                await dismissModal();
 
                 const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
                 for (const pattern of confirmPatterns) {
@@ -512,7 +556,7 @@ jobs:
                     break;
                   }
                 }
-                await shot('06_after_confirm');
+                await shot('07_after_confirm');
 
               } else {
                 const draftPatterns = [
@@ -545,7 +589,7 @@ jobs:
                   throw new Error('Save button not found. Check screenshots and button list above.');
                 }
 
-                await shot('05_after_save');
+                await shot('06_after_save');
               }
 
               await page.waitForTimeout(3000);
