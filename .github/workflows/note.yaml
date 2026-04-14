@@ -418,35 +418,46 @@ jobs:
               console.log(`[screenshot] ${label}`);
             };
 
-            // ── モーダルを閉じるヘルパー関数 ──
+            // ── モーダルをJSで強制削除するヘルパー関数 ──
             const dismissModal = async () => {
               try {
-                const modal = page.locator('div.ReactModalPortal');
-                const visible = await modal.isVisible().catch(() => false);
-                if (visible) {
-                  console.log('Modal detected, dismissing...');
-                  // まずESCキーで閉じる
-                  await page.keyboard.press('Escape');
-                  await page.waitForTimeout(1000);
-                  // ESCで閉じない場合は閉じるボタンを探す
-                  const closePatterns = [/閉じる/, /キャンセル/, /スキップ/, /後で/, /close/i, /skip/i, /cancel/i];
-                  for (const pattern of closePatterns) {
-                    const btn = modal.getByRole('button', { name: pattern }).first();
-                    if (await btn.count() > 0) {
-                      console.log(`Closing modal with button: ${pattern}`);
-                      await btn.click();
-                      await page.waitForTimeout(500);
-                      break;
+                await page.keyboard.press('Escape');
+                await page.waitForTimeout(500);
+
+                const removed = await page.evaluate(() => {
+                  let count = 0;
+                  // ReactModalPortalを直接削除
+                  document.querySelectorAll('.ReactModalPortal').forEach(el => {
+                    el.remove();
+                    count++;
+                  });
+                  // assistants_confirmationを含む画像の親モーダルを削除
+                  document.querySelectorAll('img[src*="assistants_confirmation"], img[src*="confirmation"]').forEach(img => {
+                    let el = img;
+                    for (let i = 0; i < 8; i++) {
+                      if (!el.parentElement) break;
+                      el = el.parentElement;
+                      if (el.tagName === 'BODY') break;
+                      const style = window.getComputedStyle(el);
+                      if (style.position === 'fixed' || style.position === 'absolute') {
+                        el.remove();
+                        count++;
+                        break;
+                      }
                     }
-                  }
-                  // それでも残っていたら最初のボタンを押す
-                  const firstBtn = modal.locator('button').last();
-                  if (await firstBtn.count() > 0 && await modal.isVisible().catch(() => false)) {
-                    console.log('Clicking last button in modal as fallback');
-                    await firstBtn.click();
-                    await page.waitForTimeout(500);
-                  }
-                }
+                  });
+                  // pointer-eventsをブロックしているオーバーレイを削除
+                  document.querySelectorAll('[class*="overlay"], [class*="Overlay"], [class*="backdrop"], [class*="Backdrop"]').forEach(el => {
+                    const style = window.getComputedStyle(el);
+                    if (style.position === 'fixed' && parseInt(style.zIndex) > 10) {
+                      el.remove();
+                      count++;
+                    }
+                  });
+                  return count;
+                });
+                console.log(`dismissModal: removed ${removed} element(s)`);
+                await page.waitForTimeout(300);
               } catch (e) {
                 console.log('dismissModal skipped:', e.message);
               }
@@ -461,7 +472,7 @@ jobs:
               await page.waitForTimeout(15000);
               await shot('01_after_wait');
 
-              // ── ★ モーダルを閉じる（ページ読み込み直後） ──
+              // ── ★ モーダルを強制削除（ページ読み込み直後） ──
               await dismissModal();
               await shot('02_after_dismiss_modal');
 
@@ -499,13 +510,13 @@ jobs:
               await shot('04_after_body');
               await page.waitForTimeout(2000);
 
-              // ── ③ ボタンを全部ログ出力してから保存・公開 ──
+              // ── ③ ボタンを全部ログ出力 ──
               const allButtons = await page.evaluate(() =>
                 Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
               );
               console.log('[all buttons]', JSON.stringify(allButtons));
 
-              // ── ★ モーダルを閉じる（保存・公開ボタン押す前） ──
+              // ── ★ モーダルを強制削除（ボタンクリック前） ──
               await dismissModal();
               await shot('05_before_save');
 
@@ -544,7 +555,7 @@ jobs:
                 await page.waitForTimeout(3000);
                 await shot('06_after_publish_click');
 
-                // ── ★ モーダルを閉じる（確認ダイアログが別のモーダルの場合） ──
+                // ── ★ モーダルを強制削除（確認ダイアログ前） ──
                 await dismissModal();
 
                 const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
