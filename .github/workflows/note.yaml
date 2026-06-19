@@ -390,8 +390,7 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Restore storage state
-        run: |
-                  env:
+        env:
           NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
         run: |
           node -e "require('fs').writeFileSync('note-state.json', process.env.NOTE_STORAGE_STATE_JSON)"
