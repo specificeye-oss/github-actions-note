@@ -391,9 +391,11 @@ jobs:
 
       - name: Restore storage state
         run: |
-          cat > note-state.json <<'EOF'
-          ${{ secrets.NOTE_STORAGE_STATE_JSON }}
-          EOF
+                  env:
+          NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
+        run: |
+          node -e "require('fs').writeFileSync('note-state.json', process.env.NOTE_STORAGE_STATE_JSON)"
+
 
       - name: Post to note
         run: |
