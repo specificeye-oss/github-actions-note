@@ -557,8 +557,7 @@ jobs:
               console.log('Inserting Instagram link embed...');
               await page.keyboard.press('Enter');
               await page.keyboard.press('Enter');
-              await page.evaluate((url) => navigator.clipboard.writeText(url), instagramUrl);
-              await page.keyboard.press('Control+v');
+              await page.keyboard.insertText(instagramUrl);
               await page.waitForTimeout(3000);
               await shot('04_after_body');
 
