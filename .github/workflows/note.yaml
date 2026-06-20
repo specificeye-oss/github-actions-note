@@ -552,52 +552,8 @@ jobs:
               }
               await page.waitForTimeout(300);
               await page.keyboard.type(data.body, { delay: 10 });
-
-              // ── ③ インスタリンク埋め込み（クリップボード経由でペースト・noteがカード化） ──
-              console.log('Inserting Instagram link embed...');
-              await page.keyboard.press('Enter');
-              await page.keyboard.press('Enter');
-              await page.keyboard.insertText(instagramUrl);
-              await page.waitForTimeout(3000);
               await shot('04_after_body');
-
-              // ── ④ ハッシュタグ入力（noteの専用タグフィールド） ──
-              console.log('Adding hashtags...');
-              try {
-                const tagSelectors = [
-                  'input[placeholder*="タグ"]',
-                  'input[placeholder*="#"]',
-                  'input[placeholder*="ハッシュタグ"]',
-                  '[class*="HashTag"] input',
-                  '[class*="hashtag"] input',
-                  '[class*="Tag"] input',
-                ];
-                let tagInput = null;
-                for (const sel of tagSelectors) {
-                  const el = page.locator(sel).first();
-                  if (await el.count() > 0) { tagInput = el; break; }
-                }
-                if (tagInput) {
-                  for (const tag of (data.tags || [])) {
-                    await tagInput.click();
-                    await page.waitForTimeout(200);
-                    await page.keyboard.type('#' + tag);
-                    await page.keyboard.press('Enter');
-                    await page.waitForTimeout(400);
-                  }
-                  console.log('Tags added:', data.tags);
-                  await shot('04b_after_tags');
-                } else {
-                  // タグフィールドが見つからない場合はinputを全部ログ出力
-                  const inputs = await page.evaluate(() =>
-                    Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className }))
-                  );
-                  console.log('Tag input not found. Inputs:', JSON.stringify(inputs));
-                }
-              } catch (e) {
-                console.log('Tag input error:', e.message);
-              }
-              await page.waitForTimeout(1000);
+              await page.waitForTimeout(2000);
 
               // ── ③ ボタンを全部ログ出力 ──
               const allButtons = await page.evaluate(() =>
