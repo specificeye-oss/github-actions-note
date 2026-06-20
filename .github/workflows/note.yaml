@@ -583,7 +583,49 @@ jobs:
               await shot('04d_after_link');
               console.log('Instagram link inserted via Ctrl+K');
 
-              // ── ③ ボタンを全部ログ出力 ──
+              // ── ④ タグ入力 ──
+              console.log('Adding tags...');
+              try {
+                await page.keyboard.press('Escape');
+                await page.waitForTimeout(300);
+                const tagSelectors = [
+                  'input[placeholder*="タグ"]',
+                  'input[placeholder*="#"]',
+                  'input[placeholder*="ハッシュタグ"]',
+                  '[class*="HashTag"] input',
+                  '[class*="hashtag"] input',
+                  '[class*="Tag"] input',
+                  'input[class*="tag"]',
+                ];
+                let tagInput = null;
+                for (const sel of tagSelectors) {
+                  const el = page.locator(sel).first();
+                  if (await el.count() > 0) { tagInput = el; break; }
+                }
+                if (tagInput) {
+                  const fixedTags = ['大阪','マツエク','LEDマツエク','まつげパーマ','梅田','心斎橋','難波','野田阪神','天満橋','梅田茶屋町','まつ毛','中百舌鳥','眉'];
+                  const allTags = [...new Set([...fixedTags, ...(data.tags || [])])];
+                  for (const tag of allTags) {
+                    await tagInput.click();
+                    await page.waitForTimeout(200);
+                    await page.keyboard.type('#' + tag);
+                    await page.keyboard.press('Enter');
+                    await page.waitForTimeout(400);
+                  }
+                  console.log('Tags added:', allTags);
+                  await shot('04e_after_tags');
+                } else {
+                  const inputs = await page.evaluate(() =>
+                    Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className.slice(0, 50) }))
+                  );
+                  console.log('Tag input not found. Inputs:', JSON.stringify(inputs));
+                  await shot('04e_no_tag_input');
+                }
+              } catch (e) {
+                console.log('Tag error:', e.message);
+              }
+
+              // ── ⑤ ボタンを全部ログ出力 ──
               const allButtons = await page.evaluate(() =>
                 Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
               );
