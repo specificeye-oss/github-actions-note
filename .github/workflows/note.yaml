@@ -667,7 +667,7 @@ jobs:
                   console.log('Hashtag error:', e.message);
                 }
 
-                const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
+                const confirmPatterns = [/投稿する/, /公開する/, /確認/, /はい/, /OK/i];
                 for (const pattern of confirmPatterns) {
                   const btn = page.getByRole('button', { name: pattern }).first();
                   if (await btn.count() > 0) {
