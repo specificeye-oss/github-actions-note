@@ -631,7 +631,7 @@ jobs:
                 // ── 公開設定画面のハッシュタグ入力 ──
                 console.log('Adding hashtags in publish settings...');
                 try {
-                  const fixedTags = ['大阪','マツエク','LEDマツエク','まつげパーマ','梅田','心斎橋','難波','野田阪神','天満橋','梅田茶屋町','まつ毛','中百舌鳥','眉'];
+                  const fixedTags = ['大阪','マツエク','LEDエクステ','まつげパーマ','パリジェンヌ','マスカラパーマ','眉毛','梅田','心斎橋','野田阪神','天満橋','なかもず'];
                   const allTags = [...new Set([...fixedTags, ...(data.tags || [])])];
                   const tagSelectors = [
                     'input[placeholder*="タグ"]',
@@ -666,9 +666,6 @@ jobs:
                 } catch (e) {
                   console.log('Hashtag error:', e.message);
                 }
-
-                // ── ★ モーダルを強制削除（確認ダイアログ前） ──
-                await dismissModal();
 
                 const confirmPatterns = [/公開する/, /確認/, /はい/, /OK/i];
                 for (const pattern of confirmPatterns) {
