@@ -1,1 +1,764 @@
-Commit changes
+name: Note Workflow
+
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      theme:
+        description: '記事テーマ'
+        required: true
+        type: string
+      target:
+        description: '想定読者（ペルソナ）'
+        required: true
+        type: string
+      message:
+        description: '読者に伝えたい核メッセージ'
+        required: true
+        type: string
+      cta:
+        description: '読後のアクション（CTA）'
+        required: true
+        type: string
+      tags:
+        description: 'カンマ区切りタグ（任意）'
+        required: false
+        default: ''
+        type: string
+      is_public:
+        description: '公開(true)/下書き(false)'
+        required: true
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      dry_run:
+        description: '投稿をスキップ（生成のみ）'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+permissions:
+  contents: read
+
+env:
+  TZ: Asia/Tokyo
+
+jobs:
+  setup:
+    name: Setup Theme
+    runs-on: ubuntu-latest
+    outputs:
+      theme: ${{ steps.theme.outputs.theme }}
+      target: ${{ steps.theme.outputs.target }}
+      message: ${{ steps.theme.outputs.message }}
+      cta: ${{ steps.theme.outputs.cta }}
+      tags: ${{ steps.theme.outputs.tags }}
+      is_public: ${{ steps.theme.outputs.is_public }}
+      dry_run: ${{ steps.theme.outputs.dry_run }}
+    steps:
+      - name: Resolve theme
+        id: theme
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "theme=${{ github.event.inputs.theme }}" >> "$GITHUB_OUTPUT"
+            echo "target=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
+            echo "message=${{ github.event.inputs.message }}" >> "$GITHUB_OUTPUT"
+            echo "cta=${{ github.event.inputs.cta }}" >> "$GITHUB_OUTPUT"
+            echo "tags=${{ github.event.inputs.tags }}" >> "$GITHUB_OUTPUT"
+            echo "is_public=${{ github.event.inputs.is_public }}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+          else
+            DAY=$(date +%u)
+            MONTH=$(date +%m)
+            # 10日ローテーション（曜日ではなく日付ベース）
+            SLOT=$(( $(date +%j) % 10 ))
+            case $SLOT in
+              0)
+                THEME="LBカール マツエクspice 大阪 spiceオリジナル 日本人まつ毛 自然 軽量"
+                TARGET="まつ毛エクステのカール選びに悩んでいる大阪在住の女性"
+                MESSAGE="マツエクspiceが独自開発したLBカールは、LカールとBカールの中間設計で日本人の目元にフィット。歪みにくく軽量で、自然なのにしっかり上がる。持ちもよくリペアのサイクルが伸びると好評"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="LBカール,マツエクspice,大阪マツエク,カール選び,まつ毛エクステ大阪"
+                ;;
+              1)
+                THEME="ダブルフラット マツエクspice 大阪 spiceオリジナル 濃い 持続力 バラつきにくい"
+                TARGET="濃いまつ毛が好きだけどすぐ取れてしまう大阪在住の女性"
+                MESSAGE="マツエクspiceオリジナルのダブルフラットは、上下でエクステを挟み込む独自技術。通常フラットより持続力と濃さがアップし、バラつきにくく統一感のある仕上がりが長続きする"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="ダブルフラット,マツエクspice,大阪マツエク,濃いマツエク,まつ毛エクステ大阪"
+                ;;
+              2)
+                THEME="バインドロック マツエクspice 大阪 密度 持続力 濃い目元 長持ち"
+                TARGET="ボリュームがあって長持ちするまつ毛エクステを求める大阪在住の女性"
+                MESSAGE="バインドロックは複数の細い毛を束ねて挟み込む技術で、密度と持続力を両立。通常ボリュームラッシュより取れにくくバラつきにくい。濃い目元を長くキープしたい方に人気"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="バインドロック,マツエクspice,大阪マツエク,ボリュームマツエク,まつ毛エクステ大阪"
+                ;;
+              3)
+                THEME="LEDエクステ マツエクspice 大阪 持ちがいい オイルOK 敏感肌 長持ち"
+                TARGET="まつ毛エクステがすぐ取れる・オイルクレンジングを使いたい大阪在住の女性"
+                MESSAGE="マツエクspiceのLEDエクステは通常より持ちが約1.5〜2倍長い。施術後すぐ洗顔・オイルクレンジングもOK。グルーがしみにくく敏感肌にも安心。すぐ取れる悩みを解決できる"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="LEDエクステ,マツエクspice,大阪マツエク,オイルクレンジングOK,長持ちマツエク"
+                ;;
+              4)
+                # 季節テーマ
+                if [ "$MONTH" -ge 3 ] && [ "$MONTH" -le 5 ]; then
+                  THEME="春 まつ毛エクステ 卒業 入学 就職 転勤 マツエクspice 大阪 新生活"
+                  TARGET="春の新生活・イベントを前にキレイになりたい大阪在住の女性"
+                  MESSAGE="卒業式・入学式・就職・転勤など春は人生の節目が重なる季節。マツエクspiceでは新生活のスタートに合わせた目元づくりを提案。初めてまつ毛エクステを試す方も多い時期"
+                  TAGS="春マツエク,卒業マツエク,入学マツエク,マツエクspice,大阪マツエク"
+                elif [ "$MONTH" -ge 6 ] && [ "$MONTH" -le 9 ]; then
+                  THEME="夏 まつ毛エクステ 汗 水 レジャー マツエクspice 大阪 落ちにくい"
+                  TARGET="夏のレジャーやスポーツでまつ毛エクステが心配な大阪在住の女性"
+                  MESSAGE="夏は汗や水でまつ毛エクステが外れやすくなる季節。マツエクspiceでは夏向けのグルーと施術で持ちをしっかりキープ。プール・海・スポーツ後のケア方法もアドバイスしている"
+                  TAGS="夏マツエク,汗に強いマツエク,マツエクspice,大阪マツエク,まつ毛エクステ夏"
+                elif [ "$MONTH" -ge 10 ] && [ "$MONTH" -le 11 ]; then
+                  THEME="秋 まつ毛エクステ 乾燥 まつ毛ケア マツエクspice 大阪 抜け毛"
+                  TARGET="秋の乾燥でまつ毛が抜けやすくなっていると感じる大阪在住の女性"
+                  MESSAGE="秋は季節の変わり目でまつ毛が抜けやすくなる時期。マツエクspiceでは乾燥対策を取り入れた施術とケアアドバイスを提供。秋こそまつ毛の土台づくりが大切"
+                  TAGS="秋マツエク,乾燥まつ毛,マツエクspice,大阪マツエク,まつ毛ケア"
+                else
+                  THEME="冬 まつ毛エクステ 年末年始 クリスマス 忘年会 マツエクspice 大阪"
+                  TARGET="年末のイベントやお正月に向けてキレイになりたい大阪在住の女性"
+                  MESSAGE="クリスマス・忘年会・お正月など冬はおしゃれに気合が入る季節。マツエクspiceでは年末年始のイベントに向けたボリューム・デザインの相談も受け付けている"
+                  TAGS="冬マツエク,クリスマスマツエク,年末マツエク,マツエクspice,大阪マツエク"
+                fi
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                ;;
+              5)
+                THEME="まつ毛エクステ 注意事項 アフターケア マツエクspice 大阪 長持ち コツ"
+                TARGET="まつ毛エクステを始めて間もない、またはお手入れに悩んでいる女性"
+                MESSAGE="まつ毛エクステを長持ちさせるには正しいアフターケアが大切。こすらない・オイルクレンジング不使用・濡れたまま放置しないなど、マツエクspiceがリペアのたびにお伝えしているケアのポイントを紹介"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="マツエクケア,まつ毛エクステ注意,マツエクspice,大阪マツエク,アフターケア"
+                ;;
+              6)
+                THEME="マツエクspice 大阪 眉毛 アイブロウ 美眉デザイン 顔の印象"
+                TARGET="眉毛の形・薄さ・左右差に悩む大阪在住の女性"
+                MESSAGE="マツエクspiceではまつ毛エクステに加えて眉毛デザインも対応。顔のバランスに合わせた美眉を提案し、目元全体の印象を格上げできる。まつ毛と眉毛を同日施術する方も多い"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="アイブロウ大阪,眉毛サロン,マツエクspice,美眉デザイン,大阪眉毛"
+                ;;
+              7)
+                THEME="まつ毛パーマ マツエクspice 大阪 時短 すっぴん映え 持ちがいい"
+                TARGET="まつ毛パーマを初めて検討している大阪在住の働く女性"
+                MESSAGE="マツエクspiceのまつ毛パーマは施術が早くて持ちもよく、毎朝のメイク時間を大幅に短縮できる。エクステより自然に見せたい方・すっぴんでも目元を整えたい方に人気"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="まつ毛パーマ大阪,マツエクspice,時短メイク,すっぴん映え,まつ毛カール"
+                ;;
+              8)
+                THEME="LBカール カール比較 Cカール Dカール マツエクspice 大阪 似合うカール 目の形"
+                TARGET="まつ毛エクステのカール選びで迷っている女性"
+                MESSAGE="C・D・Lカールそれぞれの特徴と、マツエクspiceオリジナルのLBカールとの違いを解説。目の形・まつ毛の向き・なりたいイメージ別にどのカールが合うかをプロの視点で紹介"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="カール比較,LBカール,マツエクspice,大阪マツエク,似合うまつ毛"
+                ;;
+              9)
+                THEME="マツエクspice まつ毛エクステ まつ毛パーマ 眉毛 大阪 比較 選び方 初めて"
+                TARGET="まつ毛エクステ・まつ毛パーマ・眉毛どれにするか迷っている大阪在住の女性"
+                MESSAGE="マツエクspiceではまつ毛エクステ・まつ毛パーマ・眉毛デザインをすべて対応。それぞれの特徴と自分に向いているメニューをプロが丁寧に案内してくれる。初めての方も安心"
+                CTA="ご予約はInstagramプロフィールのリンクから👇 @spice_eyelash_ をフォローして、リットリンクより簡単予約！"
+                TAGS="大阪マツエク,まつ毛パーマ,マツエクspice,アイブロウ大阪,まつ毛エクステ比較"
+                ;;
+            esac
+            echo "theme=$THEME" >> "$GITHUB_OUTPUT"
+            echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+            echo "message=$MESSAGE" >> "$GITHUB_OUTPUT"
+            echo "cta=$CTA" >> "$GITHUB_OUTPUT"
+            echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+            echo "is_public=true" >> "$GITHUB_OUTPUT"
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  research:
+    name: Research (Tavily)
+    runs-on: ubuntu-latest
+    needs: setup
+    env:
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      THEME: ${{ needs.setup.outputs.theme }}
+      TARGET: ${{ needs.setup.outputs.target }}
+      MESSAGE: ${{ needs.setup.outputs.message }}
+    outputs:
+      research_b64: ${{ steps.collect.outputs.research_b64 }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Research with Tavily
+        run: |
+          cat > research.mjs <<'EOF'
+          import fs from 'fs';
+
+          const apiKey = process.env.TAVILY_API_KEY;
+          const theme = process.env.THEME || 'まつ毛エクステ マツエクspice 大阪';
+          const target = process.env.TARGET || '';
+          const message = process.env.MESSAGE || '';
+
+          const prompt = `${theme} ${target} ${message}`.trim();
+
+          const res = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_key: apiKey,
+              query: prompt,
+              search_depth: 'advanced',
+              topic: 'general',
+              max_results: 5,
+              include_answer: true
+            })
+          });
+
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
+
+          const json = await res.json();
+          fs.writeFileSync('research.json', JSON.stringify(json, null, 2));
+          console.log('research saved');
+          EOF
+
+          node research.mjs
+
+      - name: Collect research
+        id: collect
+        run: |
+          echo "research_b64=$(base64 -w 0 research.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload research artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-json
+          path: research.json
+
+  write:
+    name: Write (Claude)
+    runs-on: ubuntu-latest
+    needs: [setup, research]
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      THEME: ${{ needs.setup.outputs.theme }}
+      TARGET: ${{ needs.setup.outputs.target }}
+      MESSAGE: ${{ needs.setup.outputs.message }}
+      CTA: ${{ needs.setup.outputs.cta }}
+      TAGS: ${{ needs.setup.outputs.tags }}
+      RESEARCH_B64: ${{ needs.research.outputs.research_b64 }}
+    outputs:
+      article_b64: ${{ steps.collect.outputs.article_b64 }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Write article with Claude
+        run: |
+          cat > write.mjs <<'EOF'
+          import fs from 'fs';
+
+          const apiKey = process.env.ANTHROPIC_API_KEY;
+          const theme = process.env.THEME || '';
+          const target = process.env.TARGET || '';
+          const message = process.env.MESSAGE || '';
+          const cta = process.env.CTA || '';
+          const tags = process.env.TAGS || '';
+          const research = JSON.parse(Buffer.from(process.env.RESEARCH_B64, 'base64').toString('utf8'));
+
+          const systemPrompt = `
+          あなたは日本語のnote記事を書くプロの編集者です。
+          大阪にある「まつ毛エクステ専門サロン マツエクspice」の集客を目的としたnote記事を作成してください。
+          MEO（地域検索最適化）とLLMO（AI検索最適化）を意識した記事を作成してください。
+          サロン名「マツエクspice」を記事内に自然に盛り込み、読者が予約・問い合わせをしたくなる内容にしてください。
+          出力は必ずJSONのみ。
+          形式:
+          {
+            "title": "記事タイトル",
+            "body": "note本文。見出しや改行を含む",
+            "tags": ["タグ1","タグ2","タグ3"]
+          }
+          `.trim();
+
+          const userPrompt = `
+          記事テーマ: ${theme}
+          想定読者: ${target}
+          読者に伝えたい核メッセージ: ${message}
+          読後のアクション: ${cta}
+          希望タグ: ${tags}
+          リサーチ結果: ${JSON.stringify(research, null, 2)}
+          条件:
+          - 日本語・読みやすい自然な文章・誇張しすぎない
+          - サロン名「マツエクspice」を冒頭・本文・締めくくりに自然に含める
+          - 見出しを使う（H2・H3）・最後にCTAを入れる
+          - tags は配列で3〜5個
+          - MEO対策：「大阪」「マツエクspice」を自然に文中に含める
+          - LLMO対策：「〜とは」「〜の選び方」「〜のポイント」など質問形式・解説形式の見出しを使う
+          - キーワード「モチ」「早い」「安い」「コスパ」を自然に含める
+          - 文字数は1500〜2500文字
+          - 記事末尾のCTAは「Instagramをフォローしてプロフィールのリットリンクから予約」という流れで締めくくる
+          - マツエクspiceの公式Instagramアカウント @spice_eyelash_ を明記する
+          `.trim();
+
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5',
+              max_tokens: 4000,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: userPrompt }]
+            })
+          });
+
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
+
+          const json = await res.json();
+          const text = (json.content?.[0]?.text || '').replace(/```json|```/g, '').trim();
+          fs.writeFileSync('article_raw.txt', text);
+
+          let parsed;
+          try { parsed = JSON.parse(text); }
+          catch { console.error('Claude output was not valid JSON'); console.error(text); process.exit(1); }
+
+          fs.writeFileSync('article.json', JSON.stringify(parsed, null, 2));
+          console.log('article saved');
+          EOF
+
+          node write.mjs
+
+      - name: Collect article
+        id: collect
+        run: |
+          echo "article_b64=$(base64 -w 0 article.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload article artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: article-json
+          path: |
+            article.json
+            article_raw.txt
+
+  factcheck:
+    name: Fact-check (Tavily)
+    runs-on: ubuntu-latest
+    needs: write
+    env:
+      TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+      ARTICLE_B64: ${{ needs.write.outputs.article_b64 }}
+    outputs:
+      final_b64: ${{ steps.collect.outputs.final_b64 }}
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fact-check article
+        run: |
+          cat > factcheck.mjs <<'EOF'
+          import fs from 'fs';
+
+          const apiKey = process.env.TAVILY_API_KEY;
+          const article = JSON.parse(Buffer.from(process.env.ARTICLE_B64, 'base64').toString('utf8'));
+          const query = `${article.title}\n\n${article.body.slice(0, 300)}`;
+
+          const res = await fetch('https://api.tavily.com/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_key: apiKey,
+              query,
+              search_depth: 'advanced',
+              topic: 'general',
+              max_results: 5,
+              include_answer: true
+            })
+          });
+
+          if (!res.ok) { console.error(await res.text()); process.exit(1); }
+
+          const fact = await res.json();
+          fs.writeFileSync('final_article.json', JSON.stringify({ ...article, factcheck: fact }, null, 2));
+          console.log('final article saved');
+          EOF
+
+          node factcheck.mjs
+
+      - name: Collect final article
+        id: collect
+        run: |
+          echo "final_b64=$(base64 -w 0 final_article.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload final article artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-article-json
+          path: final_article.json
+
+  post:
+    name: Post to note.com (Playwright)
+    runs-on: ubuntu-latest
+    needs: [setup, factcheck]
+    if: ${{ needs.setup.outputs.dry_run == 'false' }}
+    env:
+      NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
+      FINAL_B64: ${{ needs.factcheck.outputs.final_b64 }}
+      IS_PUBLIC: ${{ needs.setup.outputs.is_public }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright
+          npx playwright install --with-deps chromium
+
+      - name: Restore storage state
+        env:
+          NOTE_STORAGE_STATE_JSON: ${{ secrets.NOTE_STORAGE_STATE_JSON }}
+        run: |
+          node -e "require('fs').writeFileSync('note-state.json', process.env.NOTE_STORAGE_STATE_JSON)"
+
+
+      - name: Post to note
+        run: |
+          cat > post.mjs <<'EOF'
+          import { chromium } from 'playwright';
+
+          async function main() {
+            const data = JSON.parse(Buffer.from(process.env.FINAL_B64, 'base64').toString('utf8'));
+            const statePath = './note-state.json';
+            const isPublic = process.env.IS_PUBLIC === 'true';
+
+            const instagramUrl = 'https://www.instagram.com/spice_eyelash_/';
+
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({
+              storageState: statePath,
+              userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            });
+            const page = await context.newPage();
+
+            let step = 0;
+            const shot = async (label) => {
+              await page.screenshot({ path: `debug_${String(++step).padStart(2,'0')}_${label}.png`, fullPage: true });
+              console.log(`[screenshot] ${label}`);
+            };
+
+            // ── モーダルをJSで強制削除するヘルパー関数 ──
+            const dismissModal = async () => {
+              try {
+                await page.keyboard.press('Escape');
+                await page.waitForTimeout(500);
+
+                const removed = await page.evaluate(() => {
+                  let count = 0;
+                  // ReactModalPortalを直接削除
+                  document.querySelectorAll('.ReactModalPortal').forEach(el => {
+                    el.remove();
+                    count++;
+                  });
+                  // assistants_confirmationを含む画像の親モーダルを削除
+                  document.querySelectorAll('img[src*="assistants_confirmation"], img[src*="confirmation"]').forEach(img => {
+                    let el = img;
+                    for (let i = 0; i < 8; i++) {
+                      if (!el.parentElement) break;
+                      el = el.parentElement;
+                      if (el.tagName === 'BODY') break;
+                      const style = window.getComputedStyle(el);
+                      if (style.position === 'fixed' || style.position === 'absolute') {
+                        el.remove();
+                        count++;
+                        break;
+                      }
+                    }
+                  });
+                  // pointer-eventsをブロックしているオーバーレイを削除
+                  document.querySelectorAll('[class*="overlay"], [class*="Overlay"], [class*="backdrop"], [class*="Backdrop"]').forEach(el => {
+                    const style = window.getComputedStyle(el);
+                    if (style.position === 'fixed' && parseInt(style.zIndex) > 10) {
+                      el.remove();
+                      count++;
+                    }
+                  });
+                  return count;
+                });
+                console.log(`dismissModal: removed ${removed} element(s)`);
+                await page.waitForTimeout(300);
+              } catch (e) {
+                console.log('dismissModal skipped:', e.message);
+              }
+            };
+
+            try {
+              console.log('Navigating to editor.note.com/new...');
+              await page.goto('https://editor.note.com/new', { waitUntil: 'domcontentloaded' });
+              console.log('URL:', page.url());
+
+              console.log('Waiting 15s for React to render...');
+              await page.waitForTimeout(15000);
+              await shot('01_after_wait');
+
+              // ── ★ モーダルを強制削除（ページ読み込み直後） ──
+              await dismissModal();
+              await shot('02_after_dismiss_modal');
+
+              const editableCount = await page.evaluate(() =>
+                document.querySelectorAll('[contenteditable]').length
+              );
+              console.log(`Found ${editableCount} contenteditable elements`);
+
+              if (editableCount === 0) {
+                const snippet = await page.evaluate(() => document.body.innerHTML.slice(0, 800));
+                console.log('HTML snippet:', snippet);
+                throw new Error(`Editor did not load. URL: ${page.url()}`);
+              }
+
+              // ── ① タイトル入力 ──
+              console.log('Filling title...');
+              const allEditables = page.locator('[contenteditable]');
+              await allEditables.nth(0).click();
+              await page.waitForTimeout(300);
+              await page.keyboard.press('Control+A');
+              await page.keyboard.press('Backspace');
+              await page.keyboard.type(data.title, { delay: 30 });
+              await shot('03_after_title');
+
+              // ── ② 本文入力 ──
+              console.log('Filling body...');
+              const count = await allEditables.count();
+              if (count >= 2) {
+                await allEditables.nth(1).click();
+              } else {
+                await page.keyboard.press('Tab');
+              }
+              await page.waitForTimeout(300);
+              await page.keyboard.type(data.body, { delay: 10 });
+
+              await shot('04_after_body');
+
+              // ── ③ インスタリンク（テキスト選択→Ctrl+Kでリンク化） ──
+              console.log('Inserting Instagram link via Ctrl+K...');
+              await page.keyboard.press('Enter');
+              await page.keyboard.press('Enter');
+              const linkText = '▶ Instagramでご予約・お問い合わせはこちら';
+              await page.keyboard.type(linkText);
+              await page.waitForTimeout(300);
+
+              // テキストを後ろから選択
+              for (let i = 0; i < linkText.length; i++) {
+                await page.keyboard.down('Shift');
+                await page.keyboard.press('ArrowLeft');
+                await page.keyboard.up('Shift');
+              }
+              await page.waitForTimeout(300);
+              await shot('04b_text_selected');
+
+              // Ctrl+K でリンク挿入ダイアログを開く
+              await page.keyboard.press('Control+k');
+              await page.waitForTimeout(800);
+              await shot('04c_link_dialog');
+
+              await page.keyboard.type(instagramUrl);
+              await page.keyboard.press('Enter');
+              await page.waitForTimeout(500);
+              await shot('04d_after_link');
+              console.log('Instagram link inserted via Ctrl+K');
+
+              // ── ⑤ ボタンを全部ログ出力 ──
+              const allButtons = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
+              );
+              console.log('[all buttons]', JSON.stringify(allButtons));
+
+              // ── ★ モーダルを強制削除（ボタンクリック前） ──
+              await dismissModal();
+              await shot('05_before_save');
+
+              if (isPublic) {
+                const publishPatterns = [
+                  /公開する/,
+                  /公開設定/,
+                  /投稿する/,
+                  /publish/i,
+                  /post/i
+                ];
+
+                let clicked = false;
+                for (const pattern of publishPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking publish button: ${pattern}`);
+                    await btn.click();
+                    clicked = true;
+                    break;
+                  }
+                }
+
+                if (!clicked) {
+                  const btn = page.locator('button').filter({ hasText: /公開|投稿|publish/i }).first();
+                  if (await btn.count() > 0) {
+                    await btn.click();
+                    clicked = true;
+                  }
+                }
+
+                if (!clicked) {
+                  throw new Error('Publish button not found. Check screenshots and button list above.');
+                }
+
+                await page.waitForTimeout(3000);
+                await shot('06_after_publish_click');
+
+                // ── 公開設定画面のハッシュタグ入力 ──
+                console.log('Adding hashtags in publish settings...');
+                try {
+                  const fixedTags = ['大阪','マツエク','LEDエクステ','まつげパーマ','パリジェンヌ','マスカラパーマ','眉毛','梅田','心斎橋','野田阪神','天満橋','なかもず'];
+                  const allTags = [...new Set([...fixedTags, ...(data.tags || [])])];
+                  const tagSelectors = [
+                    'input[placeholder*="タグ"]',
+                    'input[placeholder*="#"]',
+                    'input[placeholder*="ハッシュタグ"]',
+                    '[class*="HashTag"] input',
+                    '[class*="hashtag"] input',
+                    '[class*="Tag"] input',
+                  ];
+                  let tagInput = null;
+                  for (const sel of tagSelectors) {
+                    const el = page.locator(sel).first();
+                    if (await el.count() > 0) { tagInput = el; break; }
+                  }
+                  if (tagInput) {
+                    for (const tag of allTags) {
+                      await tagInput.click();
+                      await page.waitForTimeout(200);
+                      await page.keyboard.type('#' + tag);
+                      await page.keyboard.press('Enter');
+                      await page.waitForTimeout(300);
+                    }
+                    console.log('Hashtags added:', allTags);
+                    await shot('06b_after_hashtags');
+                  } else {
+                    const inputs = await page.evaluate(() =>
+                      Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className.slice(0,50) }))
+                    );
+                    console.log('Hashtag input not found. Inputs:', JSON.stringify(inputs));
+                    await shot('06b_no_hashtag_input');
+                  }
+                } catch (e) {
+                  console.log('Hashtag error:', e.message);
+                }
+
+                // 公開設定モーダル内のボタンを全部ログ出力
+                const modalButtons = await page.evaluate(() =>
+                  Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
+                );
+                console.log('[confirm step buttons]', JSON.stringify(modalButtons));
+
+                const confirmPatterns = [/投稿する/, /公開する/, /確認/, /はい/, /OK/i];
+                let confirmClicked = false;
+                for (const pattern of confirmPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking confirm button: ${pattern}`);
+                    await btn.click();
+                    confirmClicked = true;
+                    break;
+                  }
+                }
+                if (!confirmClicked) {
+                  // フォールバック：最後のボタンをクリック
+                  const allBtns = page.locator('button');
+                  const btnCount = await allBtns.count();
+                  if (btnCount > 0) {
+                    const lastBtn = allBtns.nth(btnCount - 1);
+                    const lastBtnText = await lastBtn.innerText();
+                    console.log(`Fallback: clicking last button: "${lastBtnText}"`);
+                    await lastBtn.click();
+                    confirmClicked = true;
+                  }
+                }
+                await shot('07_after_confirm');
+
+              } else {
+                const draftPatterns = [
+                  /下書き保存/,
+                  /下書き/,
+                  /保存/,
+                  /save/i
+                ];
+
+                let clicked = false;
+                for (const pattern of draftPatterns) {
+                  const btn = page.getByRole('button', { name: pattern }).first();
+                  if (await btn.count() > 0) {
+                    console.log(`Clicking draft button: ${pattern}`);
+                    await btn.click();
+                    clicked = true;
+                    break;
+                  }
+                }
+
+                if (!clicked) {
+                  const btn = page.locator('button').filter({ hasText: /下書き|保存|save/i }).first();
+                  if (await btn.count() > 0) {
+                    await btn.click();
+                    clicked = true;
+                  }
+                }
+
+                if (!clicked) {
+                  throw new Error('Save button not found. Check screenshots and button list above.');
+                }
+
+                await shot('06_after_save');
+              }
+
+              await page.waitForTimeout(3000);
+              console.log('Done.');
+
+            } catch (err) {
+              await shot('error');
+              console.error('Post failed:', err.message);
+              throw err;
+            } finally {
+              await context.storageState({ path: statePath });
+              await browser.close();
+            }
+          }
+
+          main();
+          EOF
+
+          node post.mjs
+
+      - name: Upload debug screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug_*.png
+
+      - name: Upload updated state
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-note-state
+          path: note-state.json
