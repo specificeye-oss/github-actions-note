@@ -625,8 +625,24 @@ jobs:
                   throw new Error('Publish button not found. Check screenshots and button list above.');
                 }
 
-                await page.waitForTimeout(3000);
+                // 公開設定パネルが完全に読み込まれるまで待つ
+                console.log('Waiting for publish settings panel...');
+                try {
+                  await page.waitForFunction(() => document.querySelectorAll('button').length > 0, { timeout: 15000 });
+                } catch (e) {
+                  console.log('Timeout waiting for buttons:', e.message);
+                }
+                await page.waitForTimeout(2000);
                 await shot('06_after_publish_click');
+
+                // 公開設定パネル内の全要素をログ
+                const panelInfo = await page.evaluate(() => ({
+                  buttons: Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean),
+                  inputs: Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className.slice(0,60) })),
+                  textareas: Array.from(document.querySelectorAll('textarea')).map(t => t.placeholder),
+                  editables: Array.from(document.querySelectorAll('[contenteditable]')).map(e => e.textContent.slice(0,30)),
+                }));
+                console.log('[panel info]', JSON.stringify(panelInfo));
 
                 // ── 公開設定画面のハッシュタグ入力 ──
                 console.log('Adding hashtags in publish settings...');
@@ -637,9 +653,11 @@ jobs:
                     'input[placeholder*="タグ"]',
                     'input[placeholder*="#"]',
                     'input[placeholder*="ハッシュタグ"]',
+                    'input[placeholder*="tag"]',
                     '[class*="HashTag"] input',
                     '[class*="hashtag"] input',
                     '[class*="Tag"] input',
+                    '[class*="tag"] input',
                   ];
                   let tagInput = null;
                   for (const sel of tagSelectors) {
@@ -657,22 +675,14 @@ jobs:
                     console.log('Hashtags added:', allTags);
                     await shot('06b_after_hashtags');
                   } else {
-                    const inputs = await page.evaluate(() =>
-                      Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className.slice(0,50) }))
-                    );
-                    console.log('Hashtag input not found. Inputs:', JSON.stringify(inputs));
+                    console.log('Hashtag input not found (will skip)');
                     await shot('06b_no_hashtag_input');
                   }
                 } catch (e) {
                   console.log('Hashtag error:', e.message);
                 }
 
-                // 公開設定モーダル内のボタンを全部ログ出力
-                const modalButtons = await page.evaluate(() =>
-                  Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean)
-                );
-                console.log('[confirm step buttons]', JSON.stringify(modalButtons));
-
+                // 確認ボタンをクリック
                 const confirmPatterns = [/投稿する/, /公開する/, /確認/, /はい/, /OK/i];
                 let confirmClicked = false;
                 for (const pattern of confirmPatterns) {
@@ -685,16 +695,20 @@ jobs:
                   }
                 }
                 if (!confirmClicked) {
-                  // フォールバック：最後のボタンをクリック
-                  const allBtns = page.locator('button');
-                  const btnCount = await allBtns.count();
-                  if (btnCount > 0) {
-                    const lastBtn = allBtns.nth(btnCount - 1);
-                    const lastBtnText = await lastBtn.innerText();
-                    console.log(`Fallback: clicking last button: "${lastBtnText}"`);
-                    await lastBtn.click();
+                  // フォールバック：「進む」「送る」「する」を含む最後のボタン
+                  const allBtns = await page.locator('button').all();
+                  const btnTexts = await Promise.all(allBtns.map(b => b.innerText()));
+                  console.log('[all buttons at confirm]', JSON.stringify(btnTexts));
+                  const submitBtn = allBtns.find((_, i) => /投稿|公開|進む|送る|する/.test(btnTexts[i]));
+                  if (submitBtn) {
+                    const t = await submitBtn.innerText();
+                    console.log(`Fallback: clicking "${t}"`);
+                    await submitBtn.click();
                     confirmClicked = true;
                   }
+                }
+                if (!confirmClicked) {
+                  console.log('Confirm button not found - article may remain as draft');
                 }
                 await shot('07_after_confirm');
 
