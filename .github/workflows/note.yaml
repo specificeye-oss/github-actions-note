@@ -29,7 +29,7 @@ on:
       is_public:
         description: '公開(true)/下書き(false)'
         required: true
-        default: 'false'
+        default: 'true'
         type: choice
         options:
           - 'true'
