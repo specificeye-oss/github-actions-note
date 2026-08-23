@@ -649,7 +649,7 @@ jobs:
                 // ── 公開設定画面のハッシュタグ入力 ──
                 console.log('Adding hashtags in publish settings...');
                 try {
-                  const fixedTags = ['大阪','マツエク','LEDエクステ','まつげパーマ','パリジェンヌ','マスカラパーマ','眉毛','梅田','心斎橋','野田阪神','天満橋','なかもず'];
+                  const fixedTags = ['大阪','梅田','心斎橋','野田阪神','難波','天満橋','なかもず','マツエク','まつ毛パーマ','眉','まつげ','パリジェン','LEDマツエク','フラットラッシュ','バインドロック'];
                   const allTags = [...new Set([...fixedTags, ...(data.tags || [])])];
                   const tagSelectors = [
                     'input[placeholder*="タグ"]',
