@@ -625,22 +625,24 @@ jobs:
                   throw new Error('Publish button not found. Check screenshots and button list above.');
                 }
 
-                // 公開設定パネルが完全に読み込まれるまで待つ
-                console.log('Waiting for publish settings panel...');
+                // 公開設定ページへの遷移を待つ
+                console.log('Waiting for navigation to publish settings...');
                 try {
-                  await page.waitForFunction(() => document.querySelectorAll('button').length > 0, { timeout: 15000 });
+                  await page.waitForNavigation({ timeout: 10000, waitUntil: 'domcontentloaded' });
+                  console.log('Navigated to:', page.url());
                 } catch (e) {
-                  console.log('Timeout waiting for buttons:', e.message);
+                  console.log('No navigation, current URL:', page.url());
                 }
-                await page.waitForTimeout(2000);
+                await page.waitForTimeout(5000);
                 await shot('06_after_publish_click');
 
-                // 公開設定パネル内の全要素をログ
+                // 公開設定ページ内の全要素をログ
                 const panelInfo = await page.evaluate(() => ({
+                  url: window.location.href,
                   buttons: Array.from(document.querySelectorAll('button')).map(b => b.innerText.trim()).filter(Boolean),
+                  roleButtons: Array.from(document.querySelectorAll('[role="button"]')).map(b => b.innerText.trim()).filter(Boolean),
                   inputs: Array.from(document.querySelectorAll('input')).map(i => ({ ph: i.placeholder, cls: i.className.slice(0,60) })),
                   textareas: Array.from(document.querySelectorAll('textarea')).map(t => t.placeholder),
-                  editables: Array.from(document.querySelectorAll('[contenteditable]')).map(e => e.textContent.slice(0,30)),
                 }));
                 console.log('[panel info]', JSON.stringify(panelInfo));
 
